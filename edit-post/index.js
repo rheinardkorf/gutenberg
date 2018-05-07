@@ -55,6 +55,13 @@ export function initializeEditor( id, postType, postId, settings, overridePost )
 	const reboot = reinitializeEditor.bind( null, postType, postId, target, settings, overridePost );
 
 	// Global deprecations which cannot otherwise be injected into known usage.
+	deprecated( 'class set is-small-text, ..., is-large-text', {
+		version: '3.5',
+		alternative: 'has-small-font-size, ..., has-large-font-size class set',
+		plugin: 'Gutenberg',
+		hint: 'If paragraphs using this classes are opened in the editor new classes are automatically applied the post just needs to be saved.',
+	} );
+
 	deprecated( 'block `id` prop in `edit` function', {
 		version: '3.4',
 		alternative: 'block `clientId` prop',
