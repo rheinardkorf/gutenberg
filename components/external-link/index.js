@@ -15,7 +15,7 @@ import { __ } from '@wordpress/i18n';
 import Dashicon from '../dashicon';
 import './style.scss';
 
-function ExternalLink( { href, children, className, rel = '', iconClassName, ...additionalProps } ) {
+function ExternalLink( { href, children, className, rel = '', ...additionalProps } ) {
 	rel = uniq( compact( [
 		...rel.split( ' ' ),
 		'external',
@@ -32,7 +32,7 @@ function ExternalLink( { href, children, className, rel = '', iconClassName, ...
 					__( '(opens in a new window)' )
 				}
 			</span>
-			<Dashicon className={ iconClassName } icon="external" />
+			<Dashicon className="components-external-link__icon" icon="external" />
 		</a>
 	);
 }
