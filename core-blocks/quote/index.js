@@ -23,25 +23,17 @@ import './editor.scss';
 import './theme.scss';
 
 const toRichTextValue = ( value ) => value.map( ( ( subValue ) => subValue.children ) );
-const fromRichTextValue = ( value ) => value.map( ( subValue ) => ( {
-	children: subValue,
-} ) );
 
 const blockAttributes = {
 	value: {
-		type: 'array',
-		source: 'query',
-		selector: 'blockquote > p',
-		query: {
-			children: {
-				source: 'node',
-			},
-		},
-		default: [],
+		type: 'object',
+		source: 'rich-text',
+		selector: 'blockquote',
+		multiline: 'p',
 	},
 	citation: {
-		type: 'array',
-		source: 'children',
+		type: 'object',
+		source: 'rich-text',
 		selector: 'cite',
 	},
 	align: {
@@ -193,10 +185,10 @@ export const settings = {
 				<blockquote className={ className } style={ { textAlign: align } }>
 					<RichText
 						multiline="p"
-						value={ toRichTextValue( value ) }
+						value={ value }
 						onChange={
 							( nextValue ) => setAttributes( {
-								value: fromRichTextValue( nextValue ),
+								value: nextValue,
 							} )
 						}
 						onMerge={ mergeBlocks }
@@ -209,7 +201,7 @@ export const settings = {
 						/* translators: the text of the quotation */
 						placeholder={ __( 'Write quote…' ) }
 					/>
-					{ ( ( citation && citation.length > 0 ) || isSelected ) && (
+					{ ( ! RichText.isEmpty( citation ) || isSelected ) && (
 						<RichText
 							tagName="cite"
 							value={ citation }
@@ -232,8 +224,8 @@ export const settings = {
 
 		return (
 			<blockquote style={ { textAlign: align ? align : null } }>
-				<RichText.Content value={ toRichTextValue( value ) } />
-				{ citation && citation.length > 0 && <RichText.Content tagName="cite" value={ citation } /> }
+				<RichText.Content multiline="p" value={ value } />
+				{ ! RichText.isEmpty( citation ) && <RichText.Content tagName="cite" value={ citation } /> }
 			</blockquote>
 		);
 	},
@@ -268,7 +260,7 @@ export const settings = {
 						style={ { textAlign: align ? align : null } }
 					>
 						<RichText.Content value={ toRichTextValue( value ) } />
-						{ citation && citation.length > 0 && <RichText.Content tagName="cite" value={ citation } /> }
+						{ ! RichText.isEmpty( citation ) && <RichText.Content tagName="cite" value={ citation } /> }
 					</blockquote>
 				);
 			},
@@ -296,7 +288,7 @@ export const settings = {
 						style={ { textAlign: align ? align : null } }
 					>
 						<RichText.Content value={ toRichTextValue( value ) } />
-						{ citation && citation.length > 0 && <RichText.Content tagName="footer" value={ citation } /> }
+						{ ! RichText.isEmpty( citation ) && <RichText.Content tagName="footer" value={ citation } /> }
 					</blockquote>
 				);
 			},

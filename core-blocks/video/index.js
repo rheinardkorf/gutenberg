@@ -37,8 +37,8 @@ export const settings = {
 			attribute: 'src',
 		},
 		caption: {
-			type: 'array',
-			source: 'children',
+			type: 'object',
+			source: 'rich-text',
 			selector: 'figcaption',
 		},
 	},
@@ -55,7 +55,7 @@ export const settings = {
 
 			<figure>
 				{ src && <video controls src={ src } /> }
-				{ caption && caption.length > 0 && <RichText.Content tagName="figcaption" value={ caption } /> }
+				{ ! RichText.isEmpty( caption ) && <RichText.Content tagName="figcaption" value={ caption } /> }
 			</figure>
 		);
 	},

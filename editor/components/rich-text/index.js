@@ -3,7 +3,6 @@
  */
 import classnames from 'classnames';
 import {
-	last,
 	isEqual,
 	forEach,
 	merge,
@@ -117,6 +116,16 @@ export function getFormatProperties( formatName, parents ) {
 
 const DEFAULT_FORMATS = [ 'bold', 'italic', 'strikethrough', 'link', 'code' ];
 
+function isEmpty( value ) {
+	if ( Array.isArray( value ) ) {
+		return value.length === 0 || isEmpty( value[ 0 ] );
+	}
+
+	const { text, formats } = value;
+
+	return text.length === 0 && Object.keys( formats ).length === 0;
+}
+
 export class RichText extends Component {
 	constructor() {
 		super( ...arguments );
@@ -126,7 +135,6 @@ export class RichText extends Component {
 		this.onSetup = this.onSetup.bind( this );
 		this.onFocus = this.onFocus.bind( this );
 		this.onChange = this.onChange.bind( this );
-		this.onNewBlock = this.onNewBlock.bind( this );
 		this.onNodeChange = this.onNodeChange.bind( this );
 		this.onHorizontalNavigationKeyDown = this.onHorizontalNavigationKeyDown.bind( this );
 		this.onKeyDown = this.onKeyDown.bind( this );
@@ -176,7 +184,6 @@ export class RichText extends Component {
 		this.editor = editor;
 
 		editor.on( 'init', this.onInit );
-		editor.on( 'NewBlock', this.onNewBlock );
 		editor.on( 'nodechange', this.onNodeChange );
 		editor.on( 'keydown', this.onKeyDown );
 		editor.on( 'keyup', this.onKeyUp );
@@ -539,10 +546,19 @@ export class RichText extends Component {
 				const index = dom.nodeIndex( selectedNode );
 				const beforeNodes = childNodes.slice( 0, index );
 				const afterNodes = childNodes.slice( index + 1 );
+				const beforeFragment = document.createDocumentFragment();
+				const afterFragment = document.createDocumentFragment();
 
-				const { format } = this.props;
-				const before = domToFormat( beforeNodes, format, this.editor );
-				const after = domToFormat( afterNodes, format, this.editor );
+				beforeNodes.forEach( ( node ) => {
+					beforeFragment.appendChild( node );
+				} );
+				afterNodes.forEach( ( node ) => {
+					afterFragment.appendChild( node );
+				} );
+
+				const { format, multiline } = this.props;
+				const before = domToFormat( beforeFragment, multiline, format );
+				const after = domToFormat( afterFragment, multiline, format );
 
 				this.restoreContentAndSplit( before, after );
 			} else {
@@ -638,12 +654,12 @@ export class RichText extends Component {
 			const beforeFragment = beforeRange.extractContents();
 			const afterFragment = afterRange.extractContents();
 
-			const { format } = this.props;
-			before = domToFormat( filterEmptyNodes( beforeFragment.childNodes ), format, this.editor );
-			after = domToFormat( filterEmptyNodes( afterFragment.childNodes ), format, this.editor );
+			const { format, multiline } = this.props;
+			before = domToFormat( beforeFragment, multiline, format );
+			after = domToFormat( afterFragment, multiline, format );
 		} else {
-			before = [];
-			after = [];
+			before = { formats: {}, value: '' };
+			after = { formats: {}, value: '' };
 		}
 
 		// In case split occurs at the trailing or leading edge of the field,
@@ -651,69 +667,20 @@ export class RichText extends Component {
 		// value. This also provides an opportunity for the parent component to
 		// determine whether the before/after value has changed using a trivial
 		//  strict equality operation.
-		if ( this.isEmpty( after ) ) {
+		if ( isEmpty( after ) ) {
 			before = this.props.value;
-		} else if ( this.isEmpty( before ) ) {
+		} else if ( isEmpty( before ) ) {
 			after = this.props.value;
 		}
 
 		// If pasting and the split would result in no content other than the
 		// pasted blocks, remove the before and after blocks.
 		if ( context.paste ) {
-			before = this.isEmpty( before ) ? null : before;
-			after = this.isEmpty( after ) ? null : after;
+			before = isEmpty( before ) ? null : before;
+			after = isEmpty( after ) ? null : after;
 		}
 
 		this.restoreContentAndSplit( before, after, blocks );
-	}
-
-	onNewBlock() {
-		if ( this.props.multiline !== 'p' || ! this.props.onSplit ) {
-			return;
-		}
-
-		// Getting the content before and after the cursor
-		const childNodes = Array.from( this.editor.getBody().childNodes );
-		let selectedChild = this.editor.selection.getStart();
-		while ( childNodes.indexOf( selectedChild ) === -1 && selectedChild.parentNode ) {
-			selectedChild = selectedChild.parentNode;
-		}
-		const splitIndex = childNodes.indexOf( selectedChild );
-		if ( splitIndex === -1 ) {
-			return;
-		}
-		const beforeNodes = childNodes.slice( 0, splitIndex );
-		const lastNodeBeforeCursor = last( beforeNodes );
-		// Avoid splitting on single enter
-		if (
-			! lastNodeBeforeCursor ||
-			beforeNodes.length < 2 ||
-			!! lastNodeBeforeCursor.textContent
-		) {
-			return;
-		}
-
-		const before = beforeNodes.slice( 0, beforeNodes.length - 1 );
-
-		// Removing empty nodes from the beginning of the "after"
-		// avoids empty paragraphs at the beginning of newly created blocks.
-		const after = childNodes.slice( splitIndex ).reduce( ( memo, node ) => {
-			if ( ! memo.length && ! node.textContent ) {
-				return memo;
-			}
-
-			memo.push( node );
-			return memo;
-		}, [] );
-
-		// Splitting into two blocks
-		this.setContent( this.props.value );
-
-		const { format } = this.props;
-		this.restoreContentAndSplit(
-			domToFormat( before, format, this.editor ),
-			domToFormat( after, format, this.editor )
-		);
 	}
 
 	onNodeChange( { parents } ) {
@@ -752,7 +719,7 @@ export class RichText extends Component {
 	}
 
 	setContent( content ) {
-		const { format } = this.props;
+		const { format, multiline } = this.props;
 
 		// If editor has focus while content is being set, save the selection
 		// and restore caret position after content is set.
@@ -762,7 +729,7 @@ export class RichText extends Component {
 		}
 
 		this.savedContent = content;
-		this.editor.setContent( valueToString( content, format ) );
+		this.editor.setContent( valueToString( content, multiline, format ) );
 
 		if ( bookmark ) {
 			this.editor.selection.moveToBookmark( bookmark );
@@ -770,14 +737,8 @@ export class RichText extends Component {
 	}
 
 	getContent() {
-		const { format } = this.props;
-
-		switch ( format ) {
-			case 'string':
-				return this.editor.getContent();
-			default:
-				return domToFormat( this.editor.getBody().childNodes || [], 'element', this.editor );
-		}
+		const { format, multiline } = this.props;
+		return domToFormat( this.editor.getBody(), multiline, format );
 	}
 
 	componentDidUpdate( prevProps ) {
@@ -812,8 +773,8 @@ export class RichText extends Component {
 	 *
 	 * @return {boolean} Whether field is empty.
 	 */
-	isEmpty( value = this.props.value ) {
-		return ! value || ! value.length;
+	isEmpty() {
+		return isEmpty( this.props.value );
 	}
 
 	isFormatActive( format ) {
@@ -956,6 +917,7 @@ export class RichText extends Component {
 								style={ style }
 								defaultValue={ value }
 								format={ format }
+								multiline={ MultilineTag }
 								isPlaceholderVisible={ isPlaceholderVisible }
 								aria-label={ placeholder }
 								aria-autocomplete="list"
@@ -1025,15 +987,25 @@ const RichTextContainer = compose( [
 	withSafeTimeout,
 ] )( RichText );
 
-RichTextContainer.Content = ( { value, format = 'element', tagName: Tag, ...props } ) => {
+RichTextContainer.Content = ( { value, format = 'element', tagName: Tag, multiline, ...props } ) => {
 	let children;
-	switch ( format ) {
-		case 'string':
-			children = <RawHTML>{ value }</RawHTML>;
-			break;
-		default:
-			children = value;
-			break;
+
+	if ( multiline ) {
+		children = (
+			<Fragment>
+				{ value.map( ( line, index ) =>
+					<RichTextContainer.Content
+						value={ line }
+						format={ format }
+						tagName={ multiline }
+						{ ...props }
+						key={ index }
+					/>
+				) }
+			</Fragment>
+		);
+	} else {
+		children = <RawHTML>{ valueToString( value, multiline, format ) }</RawHTML>;
 	}
 
 	if ( Tag ) {
@@ -1042,5 +1014,7 @@ RichTextContainer.Content = ( { value, format = 'element', tagName: Tag, ...prop
 
 	return children;
 };
+
+RichTextContainer.isEmpty = isEmpty;
 
 export default RichTextContainer;

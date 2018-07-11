@@ -62,10 +62,9 @@ function getEmbedBlockSettings( { title, description, icon, category = 'embed', 
 				type: 'string',
 			},
 			caption: {
-				type: 'array',
-				source: 'children',
+				type: 'object',
+				source: 'rich-text',
 				selector: 'figcaption',
-				default: [],
 			},
 			align: {
 				type: 'string',

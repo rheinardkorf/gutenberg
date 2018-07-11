@@ -118,7 +118,8 @@ export function matcherFromSource( sourceConfig ) {
 		case 'text':
 			return text( sourceConfig.selector );
 		case 'children':
-			return children( sourceConfig.selector );
+		case 'rich-text':
+			return children( sourceConfig.selector, sourceConfig.multiline );
 		case 'node':
 			return node( sourceConfig.selector );
 		case 'query':
@@ -167,6 +168,7 @@ export function getBlockAttribute( attributeKey, attributeSchema, innerHTML, com
 		case 'html':
 		case 'text':
 		case 'children':
+		case 'rich-text':
 		case 'node':
 		case 'query':
 			value = parseWithAttributeSchema( innerHTML, attributeSchema );

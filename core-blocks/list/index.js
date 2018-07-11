@@ -51,10 +51,10 @@ const schema = {
 		default: false,
 	},
 	values: {
-		type: 'array',
-		source: 'children',
+		type: 'object',
+		source: 'rich-text',
 		selector: 'ol,ul',
-		default: [],
+		multiline: 'li',
 	},
 };
 
@@ -370,7 +370,7 @@ export const settings = {
 		const tagName = ordered ? 'ol' : 'ul';
 
 		return (
-			<RichText.Content tagName={ tagName } value={ values } />
+			<RichText.Content tagName={ tagName } value={ values } multiline="li" />
 		);
 	},
 };

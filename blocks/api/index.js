@@ -50,3 +50,7 @@ export {
 	doBlocksMatchTemplate,
 	synchronizeBlocksWithTemplate,
 } from './templates';
+export {
+	createRichTextRecordFromDOM,
+	createHTML,
+} from './rich-text-structure';
