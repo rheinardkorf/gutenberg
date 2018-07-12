@@ -11,8 +11,8 @@ import { Fragment } from '@wordpress/element';
 
 const { Fill: BlockSettingsMenuPluginsGroup, Slot } = createSlotFill( 'BlockSettingsMenuPluginsGroup' );
 
-BlockSettingsMenuPluginsGroup.Slot = () => (
-	<Slot name="BlockSettingsMenuPluginsGroup">
+BlockSettingsMenuPluginsGroup.Slot = ( { fillProps } ) => (
+	<Slot fillProps={ fillProps } >
 		{ ( fills ) => ! isEmpty( fills ) && (
 			<Fragment>
 				<div className="editor-block-settings-menu__separator" />
