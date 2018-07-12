@@ -9,7 +9,7 @@ import { castArray } from 'lodash';
  */
 import { __ } from '@wordpress/i18n';
 import { Component } from '@wordpress/element';
-import { IconButton, Dropdown, NavigableMenu, Slot } from '@wordpress/components';
+import { IconButton, Dropdown, NavigableMenu } from '@wordpress/components';
 import { withDispatch } from '@wordpress/data';
 
 /**

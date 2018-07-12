@@ -16,7 +16,7 @@ const BlockSettingsMenuPluginsSlot = () => (
 				<div className="editor-block-settings-menu__separator" />
 				{ fills }
 			</Fragment>
-		)}
+		) }
 	</Slot>
 );
 
