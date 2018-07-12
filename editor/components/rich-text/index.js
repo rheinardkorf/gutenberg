@@ -10,6 +10,8 @@ import {
 	find,
 	defer,
 	noop,
+	mapKeys,
+	range as _range,
 } from 'lodash';
 import 'element-closest';
 
@@ -57,6 +59,27 @@ const { Node } = window;
  * @type {string}
  */
 const TINYMCE_ZWSP = '\uFEFF';
+
+const transforms = [
+	( record ) => {
+		if ( ! /`([^`]+)`/.test( record.text ) ) {
+			return record;
+		}
+
+		const match = record.text.match( /`([^`]+)`/ );
+
+		record = { ...record };
+
+		const start = match.index;
+		const end = start + match[ 1 ].length - 1;
+
+		richTextStructure.deleteCharacter( record, match.index + match[ 0 ].length - 1 );
+		richTextStructure.deleteCharacter( record, match.index );
+		richTextStructure.applyFormat( record, start, end, { type: 'code' } );
+
+		return record;
+	},
+];
 
 export function getFormatProperties( formatName, parents ) {
 	switch ( formatName ) {
@@ -358,7 +381,13 @@ export class RichText extends Component {
 	 */
 
 	onChange() {
-		this.savedContent = this.getContent();
+		const record = this.getContent();
+		this.savedContent = transforms.reduce( ( accu, transform ) => transform( accu ), record );
+
+		if ( record !== this.savedContent ) {
+			this.setContent( this.savedContent );
+		}
+
 		this.props.onChange( this.savedContent );
 	}
 
@@ -693,14 +722,8 @@ export class RichText extends Component {
 		if (
 			!! this.editor &&
 			this.props.tagName === prevProps.tagName &&
-			this.props.value !== prevProps.value &&
-			this.props.value !== this.savedContent &&
-
-			// Comparing using isEqual is necessary especially to avoid unnecessary updateContent calls
-			// This fixes issues in multi richText blocks like quotes when moving the focus between
-			// the different editables.
-			! isEqual( this.props.value, prevProps.value ) &&
-			! isEqual( this.props.value, this.savedContent )
+			// this.props.value !== prevProps.value &&
+			this.props.value !== this.savedContent
 		) {
 			this.setContent( this.props.value );
 		}

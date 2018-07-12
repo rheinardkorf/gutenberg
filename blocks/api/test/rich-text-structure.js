@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 const { window } = new JSDOM();
 const { document } = window;
 
-import { create, toString, merge, isEmpty } from '../rich-text-structure';
+import { create, toString, merge, isEmpty, deleteCharacter, applyFormat } from '../rich-text-structure';
 
 function createNode( HTML ) {
 	document.body.innerHTML = HTML;
@@ -210,5 +210,52 @@ describe( 'isEmpty', () => {
 		expect( isEmpty( two ) ).toBe( false );
 		expect( isEmpty( three ) ).toBe( false );
 		expect( isEmpty( four ) ).toBe( false );
+	} );
+} );
+
+describe( 'deleteCharacter', () => {
+	it( 'should return true', () => {
+		const record = {
+			formats: {
+				4: [ { type: 'em' } ],
+				5: [ { type: 'em' } ],
+				6: [ { type: 'em' } ],
+			},
+			text: 'one two three',
+		};
+
+		const expected = {
+			formats: {
+				4: [ { type: 'em' } ],
+				5: [ { type: 'em' } ],
+			},
+			text: 'one to three',
+		};
+
+		expect( deleteCharacter( record, 5 ) ).toEqual( expected );
+	} );
+} );
+
+describe( 'applyFormat', () => {
+	it( 'should apply format', () => {
+		const record = {
+			formats: {
+				4: [ { type: 'em' } ],
+				5: [ { type: 'em' } ],
+				6: [ { type: 'em' } ],
+			},
+			text: 'one two three',
+		};
+
+		const expected = {
+			formats: {
+				4: [ { type: 'em' }, { type: 'strong' } ],
+				5: [ { type: 'em' }, { type: 'strong' } ],
+				6: [ { type: 'em' } ],
+			},
+			text: 'one two three',
+		};
+
+		expect( applyFormat( record, 4, 5, { type: 'strong' } ) ).toEqual( expected );
 	} );
 } );

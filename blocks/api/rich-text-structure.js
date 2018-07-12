@@ -241,3 +241,23 @@ export function isEmpty( record ) {
 
 	return text.length === 0 && Object.keys( formats ).length === 0;
 }
+
+export function deleteCharacter( record, index ) {
+	record.text = record.text.slice( 0, index ) + record.text.slice( index + 1 );
+	delete record.formats[ index ];
+	record.formats = mapKeys( record.formats, ( $1, i ) => i < index ? i : i - 1 );
+	return record;
+}
+
+export function applyFormat( record, start, end, format ) {
+	record.formats = _range( start, end + 1 ).reduce( ( formats, i ) => {
+		if ( ! formats[ i ] ) {
+			formats[ i ] = [];
+		}
+
+		formats[ i ].push( format );
+
+		return formats;
+	}, record.formats );
+	return record;
+}
