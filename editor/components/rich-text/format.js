@@ -1,7 +1,14 @@
 /**
  * WordPress dependencies
  */
-import { createHTML, createRichTextRecordFromDOM } from '@wordpress/blocks';
+import { richTextStructure } from '@wordpress/blocks';
+
+const settings = {
+	removeNodeMatch: ( node ) => node.getAttribute( 'data-mce-bogus' ) === 'all',
+	unwrapNodeMatch: ( node ) => !! node.getAttribute( 'data-mce-bogus' ),
+	removeAttributeMatch: ( attribute ) => attribute.indexOf( 'data-mce-' ) === 0,
+	filterString: ( string ) => string.replace( '\uFEFF', '' ),
+};
 
 /**
  * Transforms a value in a given format into string.
@@ -17,7 +24,7 @@ export function valueToString( value, multiline, format ) {
 		case 'string':
 			return value || '';
 		default:
-			return createHTML( value, multiline );
+			return richTextStructure.toString( value, multiline );
 	}
 }
 
@@ -31,7 +38,7 @@ export function valueToString( value, multiline, format ) {
  * @return {*} Output.
  */
 export function domToFormat( value, multiline, format ) {
-	value = createRichTextRecordFromDOM( value, multiline );
+	value = richTextStructure.create( value, multiline, settings );
 
 	switch ( format ) {
 		case 'string':

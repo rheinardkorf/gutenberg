@@ -10,7 +10,6 @@ import {
 	find,
 	defer,
 	noop,
-	reject,
 } from 'lodash';
 import 'element-closest';
 
@@ -27,7 +26,7 @@ import { createBlobURL } from '@wordpress/blob';
 import { BACKSPACE, DELETE, ENTER, LEFT, RIGHT, rawShortcut } from '@wordpress/keycodes';
 import { withInstanceId, withSafeTimeout, Slot } from '@wordpress/components';
 import { withSelect } from '@wordpress/data';
-import { rawHandler } from '@wordpress/blocks';
+import { rawHandler, richTextStructure } from '@wordpress/blocks';
 
 /**
  * Internal dependencies
@@ -59,50 +58,6 @@ const { Node } = window;
  */
 const TINYMCE_ZWSP = '\uFEFF';
 
-/**
- * Returns true if the node is the inline node boundary. This is used in node
- * filtering prevent the inline boundary from being included in the split which
- * occurs while within but at the end of an inline node, since TinyMCE includes
- * a placeholder caret character at the end.
- *
- * @see https://github.com/tinymce/tinymce/blob/master/src/plugins/link/main/ts/core/Utils.ts
- *
- * @param {Node} node Node to test.
- *
- * @return {boolean} Whether node is inline boundary.
- */
-export function isEmptyInlineBoundary( node ) {
-	const text = node.nodeName === 'A' ? node.innerText : node.textContent;
-	return text === TINYMCE_ZWSP;
-}
-
-/**
- * Returns true if the node is empty, meaning it contains only the placeholder
- * caret character or is an empty text node.
- *
- * @param {Node} node Node to test.
- *
- * @return {boolean} Whether node is empty.
- */
-export function isEmptyNode( node ) {
-	return (
-		'' === node.nodeValue ||
-		isEmptyInlineBoundary( node )
-	);
-}
-
-/**
- * Given a set of Nodes, filters to set to exclude any empty nodes: those with
- * either empty text nodes or only including the inline boundary caret.
- *
- * @param {Node[]} childNodes Nodes to filter.
- *
- * @return {Node[]} Non-empty nodes.
- */
-export function filterEmptyNodes( childNodes ) {
-	return reject( childNodes, isEmptyNode );
-}
-
 export function getFormatProperties( formatName, parents ) {
 	switch ( formatName ) {
 		case 'link' : {
@@ -116,15 +71,7 @@ export function getFormatProperties( formatName, parents ) {
 
 const DEFAULT_FORMATS = [ 'bold', 'italic', 'strikethrough', 'link', 'code' ];
 
-function isEmpty( value ) {
-	if ( Array.isArray( value ) ) {
-		return value.length === 0 || isEmpty( value[ 0 ] );
-	}
-
-	const { text, formats } = value;
-
-	return text.length === 0 && Object.keys( formats ).length === 0;
-}
+const { isEmpty } = richTextStructure;
 
 export class RichText extends Component {
 	constructor() {
@@ -1016,5 +963,6 @@ RichTextContainer.Content = ( { value, format = 'element', tagName: Tag, multili
 };
 
 RichTextContainer.isEmpty = isEmpty;
+RichTextContainer.merge = richTextStructure.merge;
 
 export default RichTextContainer;

@@ -5,9 +5,9 @@ import { range as _range, mapKeys } from 'lodash';
 
 const { TEXT_NODE, ELEMENT_NODE } = window.Node;
 
-export function createRichTextRecordFromDOM( element, multiline ) {
+export function create( element, multiline, settings ) {
 	if ( ! multiline ) {
-		return createRichTextRecord( element );
+		return createRecord( element, settings );
 	}
 
 	if ( ! element || ! element.hasChildNodes() ) {
@@ -16,14 +16,14 @@ export function createRichTextRecordFromDOM( element, multiline ) {
 
 	return Array.from( element.childNodes ).reduce( ( acc, child ) => {
 		if ( child.nodeName.toLowerCase() === multiline ) {
-			acc.push( createRichTextRecord( child ) );
+			acc.push( createRecord( child, settings ) );
 		}
 
 		return acc;
 	}, [] );
 }
 
-export function createRichTextRecord( element ) {
+function createRecord( element, settings = {} ) {
 	if ( ! element ) {
 		return {
 			formats: {},
@@ -31,7 +31,17 @@ export function createRichTextRecord( element ) {
 		};
 	}
 
-	if ( element.nodeName === 'BR' ) {
+	const {
+		removeNodeMatch = () => false,
+		unwrapNodeMatch = () => false,
+		filterString = ( string ) => string,
+	} = settings;
+
+	if (
+		element.nodeName === 'BR' &&
+		! removeNodeMatch( element ) &&
+		! unwrapNodeMatch( element )
+	) {
 		return {
 			formats: {},
 			text: '\n',
@@ -49,14 +59,25 @@ export function createRichTextRecord( element ) {
 		if ( node.nodeType === TEXT_NODE ) {
 			accumulator.text += node.nodeValue;
 		} else if ( node.nodeType === ELEMENT_NODE ) {
-			const type = node.nodeName.toLowerCase();
-			const value = createRichTextRecord( node );
-			const attributes = getAttributes( node );
-			const start = accumulator.text.length;
-			const end = start + value.text.length;
-			const format = attributes ? { type, attributes } : { type };
+			if ( removeNodeMatch( node ) ) {
+				return accumulator;
+			}
 
-			if ( start === end ) {
+			let format;
+
+			if ( ! unwrapNodeMatch( node ) ) {
+				const type = node.nodeName.toLowerCase();
+				const attributes = getAttributes( node, settings );
+
+				format = attributes ? { type, attributes } : { type };
+			}
+
+			const value = createRecord( node, settings );
+			const text = filterString( value.text );
+			const start = accumulator.text.length;
+			const end = start + text.length;
+
+			if ( format && start === end ) {
 				accumulator.formats[ start ] = [
 					{ ...format, object: true },
 					...( accumulator.formats[ start ] || [] ),
@@ -66,18 +87,26 @@ export function createRichTextRecord( element ) {
 					start + parseInt( index, 10 )
 				);
 
-				accumulator.text += value.text;
-				accumulator.formats = _range( start, end ).reduce( ( formats, index ) => {
-					return {
+				accumulator.text += text;
+
+				if ( format ) {
+					accumulator.formats = _range( start, end ).reduce( ( formats, index ) => {
+						return {
+							...accumulator.formats,
+							...formats,
+							[ index ]: [
+								...( accumulator.formats[ index ] || [] ),
+								format,
+								...( formats[ index ] || [] ),
+							],
+						};
+					}, mappedIndices );
+				} else {
+					accumulator.formats = {
 						...accumulator.formats,
-						...formats,
-						[ index ]: [
-							...( accumulator.formats[ index ] || [] ),
-							format,
-							...( formats[ index ] || [] ),
-						],
+						...mappedIndices,
 					};
-				}, mappedIndices );
+				}
 			}
 		}
 
@@ -88,13 +117,17 @@ export function createRichTextRecord( element ) {
 	} );
 }
 
-function getAttributes( element ) {
+function getAttributes( element, settings = {} ) {
 	if ( ! element.hasAttributes() ) {
 		return;
 	}
 
+	const {
+		removeAttributeMatch = () => false,
+	} = settings;
+
 	return Array.from( element.attributes ).reduce( ( acc, { name, value } ) => {
-		if ( name.indexOf( 'data-mce-' ) !== 0 ) {
+		if ( ! removeAttributeMatch( name ) ) {
 			acc[ name ] = value;
 		}
 
@@ -106,12 +139,12 @@ function prependChild( parent, child ) {
 	return parent.insertBefore( child, parent.firstChild );
 }
 
-export function createHTML( record, multiline ) {
+export function toString( record, multiline ) {
 	if ( multiline ) {
 		const open = '<' + multiline + '>';
 		const close = '</' + multiline + '>';
 
-		return open + ( record.map( ( v ) => createHTML( v ) ).join( close + open ) ) + close;
+		return open + ( record.map( ( v ) => toString( v ) ).join( close + open ) ) + close;
 	}
 
 	const { formats, text } = record;
@@ -177,4 +210,34 @@ export function createHTML( record, multiline ) {
 	}
 
 	return body.innerHTML;
+}
+
+export function merge( record, ...records ) {
+	if ( Array.isArray( record ) ) {
+		return record.concat( ...records );
+	}
+
+	return records.reduce( ( accu, { formats, text } ) => {
+		const length = accu.text.length;
+
+		accu.text += text;
+		accu.formats = {
+			...accu.formats,
+			...mapKeys( formats, ( $1, index ) =>
+				length + parseInt( index, 10 )
+			),
+		};
+
+		return accu;
+	}, record );
+}
+
+export function isEmpty( record ) {
+	if ( Array.isArray( record ) ) {
+		return record.length === 0 || ( record.length === 1 && isEmpty( record[ 0 ] ) );
+	}
+
+	const { text, formats } = record;
+
+	return text.length === 0 && Object.keys( formats ).length === 0;
 }

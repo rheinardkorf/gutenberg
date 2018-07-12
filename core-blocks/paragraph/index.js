@@ -9,7 +9,6 @@ import { isFinite, find, omit } from 'lodash';
  */
 import { __ } from '@wordpress/i18n';
 import {
-	concatChildren,
 	Component,
 	compose,
 	Fragment,
@@ -469,7 +468,7 @@ export const settings = {
 
 	merge( attributes, attributesToMerge ) {
 		return {
-			content: concatChildren( attributes.content, attributesToMerge.content ),
+			content: RichText.merge( attributes.content, attributesToMerge.content ),
 		};
 	},
 

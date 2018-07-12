@@ -1,3 +1,5 @@
+import * as richTextStructure from './rich-text-structure';
+
 export {
 	createBlock,
 	cloneBlock,
@@ -50,7 +52,4 @@ export {
 	doBlocksMatchTemplate,
 	synchronizeBlocksWithTemplate,
 } from './templates';
-export {
-	createRichTextRecordFromDOM,
-	createHTML,
-} from './rich-text-structure';
+export { richTextStructure };

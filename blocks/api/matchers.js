@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { createRichTextRecordFromDOM } from './rich-text-structure';
+import { create } from './rich-text-structure';
 
 /**
  * External dependencies
@@ -16,7 +16,7 @@ export const children = ( selector, multiline ) => {
 			match = domNode.querySelector( selector );
 		}
 
-		return createRichTextRecordFromDOM( match, multiline );
+		return create( match, multiline );
 	};
 };
 
@@ -28,6 +28,6 @@ export const node = ( selector ) => {
 			match = domNode.querySelector( selector );
 		}
 
-		return createRichTextRecordFromDOM( match );
+		return create( match );
 	};
 };
