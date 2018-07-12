@@ -100,7 +100,7 @@ export class BlockSettingsMenu extends Component {
 							{ count === 1 && <BlockHTMLConvertButton uid={ firstBlockUID } role="menuitem" /> }
 							<BlockDuplicateButton uids={ uids } rootUID={ rootUID } role="menuitem" />
 							{ count === 1 && <SharedBlockConvertButton uid={ firstBlockUID } onToggle={ onClose } itemsRole="menuitem" /> }
-							<BlockSettingsMenuPluginsGroup.Slot fillProps={ { onClose } } />
+							<BlockSettingsMenuPluginsGroup.Slot fillProps={ { onClose, firstBlockUID } } />
 							<div className="editor-block-settings-menu__separator" />
 							{ count === 1 && <SharedBlockDeleteButton uid={ firstBlockUID } onToggle={ onClose } itemsRole="menuitem" /> }
 							<BlockRemoveButton uids={ uids } role="menuitem" />

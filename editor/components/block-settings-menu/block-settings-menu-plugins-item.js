@@ -14,7 +14,7 @@ const BlockSettingsMenuPluginsItem = ( { icon, label, onClick, small, role } ) =
 		{ ( fillProps ) => (
 			<IconButton
 				className="editor-block-settings-menu__control"
-				onClick={ compose( onClick || ( () => {} ), fillProps.onClose ) }
+				onClick={ compose( () => ( onClick( fillProps.firstBlockUID ) ), fillProps.onClose ) }
 				icon={ icon || 'admin-plugins' }
 				label={ small ? label : undefined }
 				role={ role }
