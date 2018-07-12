@@ -149,7 +149,10 @@ describe( 'merge', () => {
 			text: 'onetwo',
 		};
 
-		deepEqual( merge( one, two ), three );
+		const merged = merge( one, two );
+
+		expect( merged ).not.toBe( one );
+		expect( merged ).toEqual( three );
 	} );
 
 	it( 'should merge multiline records', () => {
@@ -166,7 +169,10 @@ describe( 'merge', () => {
 			text: 'two',
 		} ];
 
-		deepEqual( merge( one, two ), [ ...one, ...two ] );
+		const merged = merge( one, two );
+
+		expect( merged ).not.toBe( one );
+		expect( merged ).toEqual( [ ...one, ...two ] );
 	} );
 } );
 

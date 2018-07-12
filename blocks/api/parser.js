@@ -20,6 +20,7 @@ import { createBlock } from './factory';
 import { isValidBlock } from './validation';
 import { getCommentDelimitedContent } from './serializer';
 import { attr, prop, html, text, query, node, children } from './matchers';
+import { create } from './rich-text-structure';
 
 /**
  * Higher-order hpq matcher which enhances an attribute matcher to return true
@@ -158,6 +159,11 @@ export function parseWithAttributeSchema( innerHTML, attributeSchema ) {
  */
 export function getBlockAttribute( attributeKey, attributeSchema, innerHTML, commentAttributes ) {
 	let value;
+
+	if ( attributeSchema.source === 'rich-text' ) {
+		attributeSchema.default = create();
+	}
+
 	switch ( attributeSchema.source ) {
 		// undefined source means that it's an attribute serialized to the block's "comment"
 		case undefined:

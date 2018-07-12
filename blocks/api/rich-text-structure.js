@@ -229,7 +229,7 @@ export function merge( record, ...records ) {
 		};
 
 		return accu;
-	}, record );
+	}, { ...record } );
 }
 
 export function isEmpty( record ) {
