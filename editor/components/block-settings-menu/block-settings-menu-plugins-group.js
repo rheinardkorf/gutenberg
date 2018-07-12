@@ -6,11 +6,13 @@ import { isEmpty } from 'lodash';
 /**
  * WordPress dependencies
  */
-import { Slot } from '@wordpress/components';
+import { createSlotFill } from '@wordpress/components';
 import { Fragment } from '@wordpress/element';
 
-const BlockSettingsMenuPluginsSlot = () => (
-	<Slot name="BlockSettingsMenuPluginsSlot">
+const { Fill: BlockSettingsMenuPluginsGroup, Slot } = createSlotFill( 'BlockSettingsMenuPluginsGroup' );
+
+BlockSettingsMenuPluginsGroup.Slot = () => (
+	<Slot name="BlockSettingsMenuPluginsGroup">
 		{ ( fills ) => ! isEmpty( fills ) && (
 			<Fragment>
 				<div className="editor-block-settings-menu__separator" />
@@ -20,4 +22,4 @@ const BlockSettingsMenuPluginsSlot = () => (
 	</Slot>
 );
 
-export default BlockSettingsMenuPluginsSlot;
+export default BlockSettingsMenuPluginsGroup;
