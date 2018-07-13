@@ -35,6 +35,7 @@ import {
 	convertBlockToShared,
 	setTemplateValidity,
 	editPost,
+	resetAutosave,
 } from '../actions';
 import effects, {
 	removeProvisionalBlock,
@@ -557,6 +558,37 @@ describe( 'effects', () => {
 				setTemplateValidity( true ),
 				setupEditorState( post, [], { title: 'A History of Pork' } ),
 			] );
+		} );
+
+		it( 'it resets the autosave if the settings contains an autosave property', () => {
+			const post = {
+				id: 1,
+				title: {
+					raw: 'A History of Pork',
+				},
+				content: {
+					raw: '',
+				},
+				status: 'draft',
+			};
+			const autosave = {
+				title: 'test title',
+				content: 'test content',
+				excerpt: 'test excerpt',
+				editLink: 'test edit link',
+			};
+			const getState = () => ( {
+				settings: {
+					template: null,
+					templateLock: false,
+				},
+			} );
+
+			const dispatch = jest.fn();
+
+			const result = handler( { post, autosave }, { getState, dispatch } );
+
+			expect( result ).toContainEqual( resetAutosave( autosave ) );
 		} );
 	} );
 

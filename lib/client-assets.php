@@ -1236,6 +1236,9 @@ function gutenberg_editor_scripts_and_styles( $hook ) {
 	if ( $post_autosave ) {
 		$editor_settings['autosave'] = array(
 			'editLink' => add_query_arg( 'gutenberg', true, get_edit_post_link( $post_autosave->ID ) ),
+			'title'    => $post_autosave->post_title,
+			'content'  => $post_autosave->post_content,
+			'excerpt'  => $post_autosave->post_excerpt,
 		);
 	}
 
