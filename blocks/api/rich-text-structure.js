@@ -26,7 +26,7 @@ export function create( element, multiline, settings ) {
 function createRecord( element, settings = {} ) {
 	if ( ! element ) {
 		return {
-			formats: {},
+			formats: [],
 			text: '',
 		};
 	}
@@ -43,21 +43,25 @@ function createRecord( element, settings = {} ) {
 		! unwrapNodeMatch( element )
 	) {
 		return {
-			formats: {},
+			formats: Array( 1 ),
 			text: '\n',
 		};
 	}
 
 	if ( ! element.hasChildNodes() ) {
 		return {
-			formats: {},
+			formats: [],
 			text: '',
 		};
 	}
 
 	return Array.from( element.childNodes ).reduce( ( accumulator, node ) => {
+		const { formats } = accumulator;
+
 		if ( node.nodeType === TEXT_NODE ) {
-			accumulator.text += node.nodeValue;
+			const text = filterString( node.nodeValue );
+			accumulator.text += text;
+			formats.push( ...Array( text.length ) );
 		} else if ( node.nodeType === ELEMENT_NODE ) {
 			if ( removeNodeMatch( node ) ) {
 				return accumulator;
@@ -73,46 +77,47 @@ function createRecord( element, settings = {} ) {
 			}
 
 			const value = createRecord( node, settings );
-			const text = filterString( value.text );
+			const text = value.text;
 			const start = accumulator.text.length;
-			const end = start + text.length;
 
-			if ( format && start === end ) {
-				accumulator.formats[ start ] = [
-					{ ...format, object: true },
-					...( accumulator.formats[ start ] || [] ),
-				];
+			if ( format && text.length === 0 ) {
+				format.object = true;
+
+				if ( formats[ start ] ) {
+					formats[ start ].unshift( format );
+				} else {
+					formats[ start ] = [ format ];
+				}
 			} else {
-				const mappedIndices = mapKeys( value.formats, ( $1, index ) =>
-					start + parseInt( index, 10 )
-				);
-
 				accumulator.text += text;
 
-				if ( format ) {
-					accumulator.formats = _range( start, end ).reduce( ( formats, index ) => {
-						return {
-							...accumulator.formats,
-							...formats,
-							[ index ]: [
-								...( accumulator.formats[ index ] || [] ),
-								format,
-								...( formats[ index ] || [] ),
-							],
-						};
-					}, mappedIndices );
-				} else {
-					accumulator.formats = {
-						...accumulator.formats,
-						...mappedIndices,
-					};
+				let i = value.formats.length;
+
+				while ( i-- ) {
+					const index = start + i;
+
+					if ( format ) {
+						if ( formats[ index ] ) {
+							formats[ index ].push( format );
+						} else {
+							formats[ index ] = [ format ];
+						}
+					}
+
+					if ( value.formats[ i ] ) {
+						if ( formats[ index ] ) {
+							formats[ index ].push( ...value.formats[ i ] );
+						} else {
+							formats[ index ] = value.formats[ i ];
+						}
+					}
 				}
 			}
 		}
 
 		return accumulator;
 	}, {
-		formats: {},
+		formats: [],
 		text: '',
 	} );
 }
@@ -218,16 +223,8 @@ export function merge( record, ...records ) {
 	}
 
 	return records.reduce( ( accu, { formats, text } ) => {
-		const length = accu.text.length;
-
 		accu.text += text;
-		accu.formats = {
-			...accu.formats,
-			...mapKeys( formats, ( $1, index ) =>
-				length + parseInt( index, 10 )
-			),
-		};
-
+		accu.formats.push( ...formats );
 		return accu;
 	}, { ...record } );
 }
@@ -239,25 +236,28 @@ export function isEmpty( record ) {
 
 	const { text, formats } = record;
 
-	return text.length === 0 && Object.keys( formats ).length === 0;
+	return text.length === 0 && formats.length === 0;
 }
 
 export function deleteCharacter( record, index ) {
 	record.text = record.text.slice( 0, index ) + record.text.slice( index + 1 );
-	delete record.formats[ index ];
-	record.formats = mapKeys( record.formats, ( $1, i ) => i < index ? i : i - 1 );
+	record.formats.splice( index, 1 );
 	return record;
 }
 
 export function applyFormat( record, start, end, format ) {
-	record.formats = _range( start, end + 1 ).reduce( ( formats, i ) => {
-		if ( ! formats[ i ] ) {
-			formats[ i ] = [];
+	const { formats } = record;
+	let i = formats.length;
+
+	while ( i-- ) {
+		if ( i >= start && i <= end ) {
+			if ( formats[ i ] ) {
+				formats[ i ].push( format );
+			} else {
+				formats[ i ] = [ format ];
+			}
 		}
+	}
 
-		formats[ i ].push( format );
-
-		return formats;
-	}, record.formats );
 	return record;
 }

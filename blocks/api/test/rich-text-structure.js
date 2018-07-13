@@ -13,23 +13,54 @@ function createNode( HTML ) {
 
 describe( 'createRichTextRecordFromDOM', () => {
 	it( 'should extract text with formats', () => {
+		const element = createNode( '<p>one <em>two 🍒</em> three</p>' );
+
+		deepEqual( create( element ), {
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
+			text: 'one two 🍒 three',
+		} );
+	} );
+
+	it( 'should extract text with formats', () => {
 		const element = createNode( '<p>one <em>two 🍒</em> <a href="#"><img src=""><strong>three</strong></a><img src=""></p>' );
 
 		deepEqual( create( element ), {
-			formats: {
-				4: [ { type: 'em' } ],
-				5: [ { type: 'em' } ],
-				6: [ { type: 'em' } ],
-				7: [ { type: 'em' } ],
-				8: [ { type: 'em' } ],
-				9: [ { type: 'em' } ],
-				11: [ { type: 'a', attributes: { href: '#' } }, { type: 'img', attributes: { src: '' }, object: true }, { type: 'strong' } ],
-				12: [ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				13: [ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				14: [ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				15: [ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				16: [ { type: 'img', attributes: { src: '' }, object: true } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				[ { type: 'a', attributes: { href: '#' } }, { type: 'img', attributes: { src: '' }, object: true }, { type: 'strong' } ],
+				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+				[ { type: 'img', attributes: { src: '' }, object: true } ],
+			],
 			text: 'one two 🍒 three',
 		} );
 	} );
@@ -39,15 +70,30 @@ describe( 'createRichTextRecordFromDOM', () => {
 
 		deepEqual( create( element, 'p' ), [
 			{
-				formats: {
-					4: [ { type: 'em' } ],
-					5: [ { type: 'em' } ],
-					6: [ { type: 'em' } ],
-				},
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
 				text: 'one two three',
 			},
 			{
-				formats: {},
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
 				text: 'test',
 			},
 		] );
@@ -130,22 +176,30 @@ describe( 'createRichTextRecordFromDOM', () => {
 describe( 'merge', () => {
 	it( 'should merge records', () => {
 		const one = {
-			formats: {
-				2: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+			],
 			text: 'one',
 		};
 		const two = {
-			formats: {
-				0: [ { type: 'em' } ],
-			},
+			formats: [
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+			],
 			text: 'two',
 		};
 		const three = {
-			formats: {
-				2: [ { type: 'em' } ],
-				3: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+			],
 			text: 'onetwo',
 		};
 
@@ -157,15 +211,19 @@ describe( 'merge', () => {
 
 	it( 'should merge multiline records', () => {
 		const one = [ {
-			formats: {
-				2: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+			],
 			text: 'one',
 		} ];
 		const two = [ {
-			formats: {
-				0: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+			],
 			text: 'two',
 		} ];
 
@@ -178,7 +236,7 @@ describe( 'merge', () => {
 
 describe( 'isEmpty', () => {
 	const emptyRecord = {
-		formats: {},
+		formats: [],
 		text: '',
 	};
 
@@ -194,13 +252,13 @@ describe( 'isEmpty', () => {
 
 	it( 'should return false', () => {
 		const one = {
-			formats: {},
+			formats: [],
 			text: 'test',
 		};
 		const two = {
-			formats: {
-				0: [ { type: 'image' } ],
-			},
+			formats: [
+				[ { type: 'image' } ],
+			],
 			text: '',
 		};
 		const three = [ emptyRecord, one ];
@@ -216,19 +274,39 @@ describe( 'isEmpty', () => {
 describe( 'deleteCharacter', () => {
 	it( 'should return true', () => {
 		const record = {
-			formats: {
-				4: [ { type: 'em' } ],
-				5: [ { type: 'em' } ],
-				6: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
 			text: 'one two three',
 		};
 
 		const expected = {
-			formats: {
-				4: [ { type: 'em' } ],
-				5: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
 			text: 'one to three',
 		};
 
@@ -239,23 +317,43 @@ describe( 'deleteCharacter', () => {
 describe( 'applyFormat', () => {
 	it( 'should apply format', () => {
 		const record = {
-			formats: {
-				4: [ { type: 'em' } ],
-				5: [ { type: 'em' } ],
-				6: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
 			text: 'one two three',
 		};
 
 		const expected = {
-			formats: {
-				4: [ { type: 'em' }, { type: 'strong' } ],
-				5: [ { type: 'em' }, { type: 'strong' } ],
-				6: [ { type: 'em' } ],
-			},
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'strong' } ],
+				[ { type: 'em' }, { type: 'strong' } ],
+				[ { type: 'em' }, { type: 'strong' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
 			text: 'one two three',
 		};
 
-		expect( applyFormat( record, 4, 5, { type: 'strong' } ) ).toEqual( expected );
+		expect( applyFormat( record, 3, 5, { type: 'strong' } ) ).toEqual( expected );
 	} );
 } );
