@@ -468,7 +468,7 @@ export const settings = {
 
 	merge( attributes, attributesToMerge ) {
 		return {
-			content: RichText.merge( attributes.content, attributesToMerge.content ),
+			content: RichText.concat( attributes.content, attributesToMerge.content ),
 		};
 	},
 

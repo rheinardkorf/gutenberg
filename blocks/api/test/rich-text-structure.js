@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 const { window } = new JSDOM();
 const { document } = window;
 
-import { create, toString, merge, isEmpty, deleteCharacters, applyFormat } from '../rich-text-structure';
+import { create, toString, concat, isEmpty, splice, applyFormat } from '../rich-text-structure';
 
 function createNode( HTML ) {
 	document.body.innerHTML = HTML;
@@ -185,7 +185,7 @@ describe( 'create with settings', () => {
 	} );
 } );
 
-describe( 'merge', () => {
+describe( 'concat', () => {
 	it( 'should merge records', () => {
 		const one = {
 			formats: [
@@ -215,7 +215,7 @@ describe( 'merge', () => {
 			text: 'onetwo',
 		};
 
-		const merged = merge( one, two );
+		const merged = concat( one, two );
 
 		expect( merged ).not.toBe( one );
 		expect( merged ).toEqual( three );
@@ -239,7 +239,7 @@ describe( 'merge', () => {
 			text: 'two',
 		} ];
 
-		const merged = merge( one, two );
+		const merged = concat( one, two );
 
 		expect( merged ).not.toBe( one );
 		expect( merged ).toEqual( [ ...one, ...two ] );
@@ -283,8 +283,8 @@ describe( 'isEmpty', () => {
 	} );
 } );
 
-describe( 'deleteCharacters', () => {
-	it( 'should return delete by array', () => {
+describe( 'splice', () => {
+	it( 'should delete and insert', () => {
 		const record = {
 			formats: [
 				undefined,
@@ -308,7 +308,7 @@ describe( 'deleteCharacters', () => {
 			formats: [
 				undefined,
 				undefined,
-				undefined,
+				[ { type: 'strong' } ],
 				[ { type: 'em' } ],
 				undefined,
 				undefined,
@@ -317,48 +317,10 @@ describe( 'deleteCharacters', () => {
 				undefined,
 				undefined,
 			],
-			text: 'on o three',
+			text: 'onao three',
 		};
 
-		expect( deleteCharacters( record, [ 4, 5, 2 ] ) ).toEqual( expected );
-	} );
-
-	it( 'should return delete by start and end', () => {
-		const record = {
-			formats: [
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-			],
-			text: 'one two three',
-		};
-
-		const expected = {
-			formats: [
-				undefined,
-				undefined,
-				[ { type: 'em' } ],
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-			],
-			text: 'ono three',
-		};
-
-		expect( deleteCharacters( record, 2, 5 ) ).toEqual( expected );
+		expect( splice( record, 2, 4, 'a', [ [ { type: 'strong' } ] ] ) ).toEqual( expected );
 	} );
 } );
 

@@ -10,7 +10,7 @@ import { getBlockTransforms, findTransform, richTextStructure } from '@wordpress
 
 export default function() {
 	const { onReplace } = this.props;
-	const { deleteCharacters, applyFormat } = richTextStructure;
+	const { splice, applyFormat } = richTextStructure;
 
 	const {
 		// enter: enterPatterns,
@@ -34,7 +34,7 @@ export default function() {
 			const result = record.text.match( transformation.regExp );
 
 			const block = transformation.transform( {
-				content: deleteCharacters( record, 0, result[ 0 ].length - 1 ),
+				content: splice( record, 0, result[ 0 ].length ),
 				match: result,
 			} );
 
@@ -72,7 +72,8 @@ export default function() {
 			const start = match.index;
 			const end = start + match[ 1 ].length - 1;
 
-			record = deleteCharacters( record, [ start, match.index + match[ 0 ].length - 1 ] );
+			record = splice( record, match.index + match[ 0 ].length - 1, 1 );
+			record = splice( record, start, 1 );
 			record = applyFormat( record, start, end, { type: 'code' } );
 
 			return record;

@@ -965,6 +965,6 @@ RichTextContainer.Content = ( { value, format = 'element', tagName: Tag, multili
 };
 
 RichTextContainer.isEmpty = isEmpty;
-RichTextContainer.merge = richTextStructure.merge;
+RichTextContainer.concat = richTextStructure.concat;
 
 export default RichTextContainer;
