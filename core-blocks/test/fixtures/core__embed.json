@@ -2,12 +2,50 @@
     {
         "uid": "_uid_0",
         "name": "core/embed",
-        "isValid": true,
+        "isValid": false,
         "attributes": {
             "url": "https://example.com/",
-            "caption": [
-                "Embedded content from an example URL"
-            ]
+            "caption": {
+                "formats": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                ],
+                "text": "Embedded content from an example URL"
+            }
         },
         "innerBlocks": [],
         "originalContent": "<figure class=\"wp-block-embed\">\n    https://example.com/\n    <figcaption>Embedded content from an example URL</figcaption>\n</figure>"

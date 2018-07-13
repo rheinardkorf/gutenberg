@@ -238,20 +238,18 @@ export function isEmpty( record ) {
 	return text.length === 0 && formats.length === 0;
 }
 
-function deleteCharacter( record, index ) {
-	const { formats } = record;
-	const text = record.text.slice( 0, index ) + record.text.slice( index + 1 );
-
-	record.formats.splice( index, 1 );
-
-	return { formats, text };
-}
-
-export function deleteCharacters( record, start ) {
-	// Delete from highest to lowest.
-	start.sort( ( a, b ) => b - a ).forEach( ( index ) => {
-		record = deleteCharacter( record, index );
-	} );
+export function deleteCharacters( record, start, end ) {
+	if ( typeof start === 'number' ) {
+		const { formats } = record;
+		const text = record.text.slice( 0, start ) + record.text.slice( end + 1 );
+		formats.splice( start, end - start + 1 );
+		record = { formats, text };
+	} else {
+		// Delete from highest to lowest.
+		start.sort( ( a, b ) => b - a ).forEach( ( index ) => {
+			record = deleteCharacters( record, index, index );
+		} );
+	}
 
 	return record;
 }

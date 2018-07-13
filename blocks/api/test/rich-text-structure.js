@@ -72,6 +72,34 @@ describe( 'create', () => {
 			},
 		] );
 	} );
+
+	it( 'should extract multiline text list', () => {
+		const element = createNode( '<ul><li>one<ul><li>two</li></ul></li><li>three</li></ul>' );
+
+		deepEqual( create( element, 'li' ), [
+			{
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'ul' }, { type: 'li' } ],
+					[ { type: 'ul' }, { type: 'li' } ],
+					[ { type: 'ul' }, { type: 'li' } ],
+				],
+				text: 'onetwo',
+			},
+			{
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'three',
+			},
+		] );
+	} );
 } );
 
 describe( 'toString', () => {
@@ -109,6 +137,12 @@ describe( 'toString', () => {
 		const HTML = '<em>If you want to learn more about how to build additional blocks, or if you are interested in helping with the project, head over to the <a href="https://github.com/WordPress/gutenberg">GitHub repository</a>.</em>';
 
 		deepEqual( toString( create( createNode( `<p>${ HTML }</p>` ) ) ), HTML );
+	} );
+
+	it( 'should extract recreate HTML 7', () => {
+		const HTML = '<li>one<ul><li>two</li></ul></li><li>three</li>';
+
+		deepEqual( toString( create( createNode( `<ul>${ HTML }</ul>` ), 'li' ), 'li' ), HTML );
 	} );
 } );
 
@@ -250,7 +284,7 @@ describe( 'isEmpty', () => {
 } );
 
 describe( 'deleteCharacters', () => {
-	it( 'should return true', () => {
+	it( 'should return delete by array', () => {
 		const record = {
 			formats: [
 				undefined,
@@ -287,6 +321,44 @@ describe( 'deleteCharacters', () => {
 		};
 
 		expect( deleteCharacters( record, [ 4, 5, 2 ] ) ).toEqual( expected );
+	} );
+
+	it( 'should return delete by start and end', () => {
+		const record = {
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
+			text: 'one two three',
+		};
+
+		const expected = {
+			formats: [
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
+			text: 'ono three',
+		};
+
+		expect( deleteCharacters( record, 2, 5 ) ).toEqual( expected );
 	} );
 } );
 

@@ -2,12 +2,45 @@
     {
         "uid": "_uid_0",
         "name": "core-embed/polldaddy",
-        "isValid": true,
+        "isValid": false,
         "attributes": {
             "url": "https://polldaddy.com/",
-            "caption": [
-                "Embedded content from polldaddy"
-            ]
+            "caption": {
+                "formats": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                ],
+                "text": "Embedded content from polldaddy"
+            }
         },
         "innerBlocks": [],
         "originalContent": "<figure class=\"wp-block-embed-polldaddy wp-block-embed\">\n    https://polldaddy.com/\n    <figcaption>Embedded content from polldaddy</figcaption>\n</figure>"

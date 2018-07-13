@@ -77,9 +77,7 @@ export const settings = {
 				blocks: [ 'core/heading' ],
 				transform: ( { content } ) => {
 					return createBlock( 'core/quote', {
-						value: [
-							{ children: <p key="1">{ content }</p> },
-						],
+						value: [ content ],
 					} );
 				},
 			},
@@ -88,9 +86,7 @@ export const settings = {
 				regExp: /^>\s/,
 				transform: ( { content } ) => {
 					return createBlock( 'core/quote', {
-						value: [
-							{ children: <p key="1">{ content }</p> },
-						],
+						value: [ content ],
 					} );
 				},
 			},

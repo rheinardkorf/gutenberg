@@ -2,12 +2,43 @@
     {
         "uid": "_uid_0",
         "name": "core-embed/cloudup",
-        "isValid": true,
+        "isValid": false,
         "attributes": {
             "url": "https://cloudup.com/",
-            "caption": [
-                "Embedded content from cloudup"
-            ]
+            "caption": {
+                "formats": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                ],
+                "text": "Embedded content from cloudup"
+            }
         },
         "innerBlocks": [],
         "originalContent": "<figure class=\"wp-block-embed-cloudup wp-block-embed\">\n    https://cloudup.com/\n    <figcaption>Embedded content from cloudup</figcaption>\n</figure>"

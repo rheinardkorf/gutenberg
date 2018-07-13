@@ -1,122 +1,81 @@
 /**
  * External dependencies
  */
-import tinymce from 'tinymce';
-import { filter, groupBy, drop } from 'lodash';
+import { filter, groupBy } from 'lodash';
 
 /**
  * WordPress dependencies
  */
-import { ESCAPE, ENTER, SPACE, BACKSPACE } from '@wordpress/keycodes';
-import { getBlockTransforms, findTransform } from '@wordpress/blocks';
+import { getBlockTransforms, findTransform, richTextStructure } from '@wordpress/blocks';
 
-export default function( editor ) {
-	const getContent = this.getContent.bind( this );
-	const { setTimeout, onReplace } = this.props;
-
-	const VK = tinymce.util.VK;
+export default function() {
+	const { onReplace } = this.props;
+	const { deleteCharacters, applyFormat } = richTextStructure;
 
 	const {
-		enter: enterPatterns,
-		undefined: spacePatterns,
+		// enter: enterPatterns,
+		undefined: patterns,
 	} = groupBy( filter( getBlockTransforms( 'from' ), { type: 'pattern' } ), 'trigger' );
 
-	let canUndo;
+	return [
+		( record ) => {
+			if ( ! onReplace ) {
+				return record;
+			}
 
-	editor.on( 'selectionchange', function() {
-		canUndo = null;
-	} );
+			const transformation = findTransform( patterns, ( item ) => {
+				return item.regExp.test( record.text );
+			} );
 
-	editor.on( 'keydown', function( event ) {
-		const { keyCode } = event;
+			if ( ! transformation ) {
+				return record;
+			}
 
-		if ( ( canUndo && keyCode === ESCAPE ) || ( canUndo === 'space' && keyCode === BACKSPACE ) ) {
-			editor.undoManager.undo();
-			event.preventDefault();
-			event.stopImmediatePropagation();
-		}
+			const result = record.text.match( transformation.regExp );
 
-		if ( VK.metaKeyPressed( event ) ) {
-			return;
-		}
+			const block = transformation.transform( {
+				content: deleteCharacters( record, 0, result[ 0 ].length - 1 ),
+				match: result,
+			} );
 
-		if ( keyCode === ENTER ) {
-			enter( event );
-		// Wait for the browser to insert the character.
-		} else if ( keyCode === SPACE ) {
-			setTimeout( () => searchFirstText( spacePatterns ) );
-		}
-	}, true );
+			onReplace( [ block ] );
+		},
+		// To do: only on enter.
+		// ( record ) => {
+		// 	if ( ! onReplace ) {
+		// 		return record;
+		// 	}
 
-	function searchFirstText( patterns ) {
-		if ( ! onReplace ) {
-			return;
-		}
+		// 	const transformation = findTransform( enterPatterns, ( item ) => {
+		// 		return item.regExp.test( record.text );
+		// 	} );
 
-		// Merge text nodes.
-		editor.getBody().normalize();
+		// 	if ( ! transformation ) {
+		// 		return record;
+		// 	}
 
-		const content = getContent();
+		// 	const block = transformation.transform( { content: record.text } );
 
-		if ( ! content.length ) {
-			return;
-		}
+		// 	onReplace( [ block ] );
+		// },
+		( record ) => {
+			if ( record.text.indexOf( '`' ) === -1 ) {
+				return record;
+			}
 
-		const firstText = content[ 0 ];
+			const match = record.text.match( /`([^`]+)`/ );
 
-		const transformation = findTransform( patterns, ( item ) => {
-			return item.regExp.test( firstText );
-		} );
+			if ( ! match ) {
+				return record;
+			}
 
-		if ( ! transformation ) {
-			return;
-		}
+			const start = match.index;
+			const end = start + match[ 1 ].length - 1;
 
-		const result = firstText.match( transformation.regExp );
+			record = deleteCharacters( record, [ start, match.index + match[ 0 ].length - 1 ] );
+			record = applyFormat( record, start, end, { type: 'code' } );
 
-		const range = editor.selection.getRng();
-		const matchLength = result[ 0 ].length;
-		const remainingText = firstText.slice( matchLength );
-
-		// The caret position must be at the end of the match.
-		if ( range.startOffset !== matchLength ) {
-			return;
-		}
-
-		const block = transformation.transform( {
-			content: [ remainingText, ...drop( content ) ],
-			match: result,
-		} );
-
-		onReplace( [ block ] );
-	}
-
-	function enter( event ) {
-		if ( ! onReplace ) {
-			return;
-		}
-
-		// Merge text nodes.
-		editor.getBody().normalize();
-
-		const content = getContent();
-
-		if ( ! content.length ) {
-			return;
-		}
-
-		const pattern = findTransform( enterPatterns, ( { regExp } ) => regExp.test( content[ 0 ] ) );
-
-		if ( ! pattern ) {
-			return;
-		}
-
-		const block = pattern.transform( { content } );
-		onReplace( [ block ] );
-
-		// We call preventDefault to prevent additional newlines.
-		event.preventDefault();
-		// stopImmediatePropagation is called to prevent TinyMCE's own processing of keydown which conflicts with the block replacement.
-		event.stopImmediatePropagation();
-	}
+			return record;
+		},
+	];
 }

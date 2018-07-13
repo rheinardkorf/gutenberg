@@ -58,29 +58,6 @@ const { Node } = window;
  */
 const TINYMCE_ZWSP = '\uFEFF';
 
-const transforms = [
-	( record ) => {
-		if ( record.text.indexOf( '`' ) === -1 ) {
-			return record;
-		}
-
-		const match = record.text.match( /`([^`]+)`/ );
-
-		if ( ! match ) {
-			return record;
-		}
-
-		const { deleteCharacters, applyFormat } = richTextStructure;
-		const start = match.index;
-		const end = start + match[ 1 ].length - 1;
-
-		record = deleteCharacters( record, [ start, match.index + match[ 0 ].length - 1 ] );
-		record = applyFormat( record, start, end, { type: 'code' } );
-
-		return record;
-	},
-];
-
 export function getFormatProperties( formatName, parents ) {
 	switch ( formatName ) {
 		case 'link' : {
@@ -122,6 +99,7 @@ export class RichText extends Component {
 		};
 
 		this.containerRef = createRef();
+		this.patterns = patterns.call( this );
 	}
 
 	/**
@@ -382,7 +360,8 @@ export class RichText extends Component {
 
 	onChange() {
 		const record = this.getContent();
-		this.savedContent = transforms.reduce( ( accu, transform ) => transform( accu ), record );
+
+		this.savedContent = this.patterns.reduce( ( accu, transform ) => transform( accu ), record );
 
 		if ( record !== this.savedContent ) {
 			this.setContent( this.savedContent );

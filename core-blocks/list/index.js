@@ -121,7 +121,7 @@ export const settings = {
 				regExp: /^[*-]\s/,
 				transform: ( { content } ) => {
 					return createBlock( 'core/list', {
-						values: [ <li key="1">{ content }</li> ],
+						values: [ content ],
 					} );
 				},
 			},
@@ -131,7 +131,7 @@ export const settings = {
 				transform: ( { content } ) => {
 					return createBlock( 'core/list', {
 						ordered: true,
-						values: [ <li key="1">{ content }</li> ],
+						values: [ content ],
 					} );
 				},
 			},
