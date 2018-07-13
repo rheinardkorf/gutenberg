@@ -4,40 +4,14 @@ import { JSDOM } from 'jsdom';
 const { window } = new JSDOM();
 const { document } = window;
 
-import { create, toString, merge, isEmpty, deleteCharacter, applyFormat } from '../rich-text-structure';
+import { create, toString, merge, isEmpty, deleteCharacters, applyFormat } from '../rich-text-structure';
 
 function createNode( HTML ) {
 	document.body.innerHTML = HTML;
 	return document.body.firstChild;
 }
 
-describe( 'createRichTextRecordFromDOM', () => {
-	it( 'should extract text with formats', () => {
-		const element = createNode( '<p>one <em>two 🍒</em> three</p>' );
-
-		deepEqual( create( element ), {
-			formats: [
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-			],
-			text: 'one two 🍒 three',
-		} );
-	} );
-
+describe( 'create', () => {
 	it( 'should extract text with formats', () => {
 		const element = createNode( '<p>one <em>two 🍒</em> <a href="#"><img src=""><strong>three</strong></a><img src=""></p>' );
 
@@ -98,7 +72,9 @@ describe( 'createRichTextRecordFromDOM', () => {
 			},
 		] );
 	} );
+} );
 
+describe( 'toString', () => {
 	it( 'should extract recreate HTML 1', () => {
 		const HTML = 'one <em>two 🍒</em> <a href="#"><img src=""><strong>three</strong></a><img src="">';
 
@@ -134,7 +110,9 @@ describe( 'createRichTextRecordFromDOM', () => {
 
 		deepEqual( toString( create( createNode( `<p>${ HTML }</p>` ) ) ), HTML );
 	} );
+} );
 
+describe( 'create with settings', () => {
 	const settings = {
 		removeNodeMatch: ( node ) => node.getAttribute( 'data-mce-bogus' ) === 'all',
 		unwrapNodeMatch: ( node ) => !! node.getAttribute( 'data-mce-bogus' ),
@@ -271,7 +249,7 @@ describe( 'isEmpty', () => {
 	} );
 } );
 
-describe( 'deleteCharacter', () => {
+describe( 'deleteCharacters', () => {
 	it( 'should return true', () => {
 		const record = {
 			formats: [
@@ -297,8 +275,6 @@ describe( 'deleteCharacter', () => {
 				undefined,
 				undefined,
 				undefined,
-				undefined,
-				[ { type: 'em' } ],
 				[ { type: 'em' } ],
 				undefined,
 				undefined,
@@ -307,10 +283,10 @@ describe( 'deleteCharacter', () => {
 				undefined,
 				undefined,
 			],
-			text: 'one to three',
+			text: 'on o three',
 		};
 
-		expect( deleteCharacter( record, 5 ) ).toEqual( expected );
+		expect( deleteCharacters( record, [ 4, 5, 2 ] ) ).toEqual( expected );
 	} );
 } );
 

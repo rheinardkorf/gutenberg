@@ -1,7 +1,6 @@
 /**
- * External dependencies
+ * Browser dependencies
  */
-import { range as _range, mapKeys } from 'lodash';
 
 const { TEXT_NODE, ELEMENT_NODE } = window.Node;
 
@@ -239,14 +238,25 @@ export function isEmpty( record ) {
 	return text.length === 0 && formats.length === 0;
 }
 
-export function deleteCharacter( record, index ) {
-	record.text = record.text.slice( 0, index ) + record.text.slice( index + 1 );
+function deleteCharacter( record, index ) {
+	const { formats } = record;
+	const text = record.text.slice( 0, index ) + record.text.slice( index + 1 );
+
 	record.formats.splice( index, 1 );
+
+	return { formats, text };
+}
+
+export function deleteCharacters( record, start ) {
+	// Delete from highest to lowest.
+	start.sort( ( a, b ) => b - a ).forEach( ( index ) => {
+		record = deleteCharacter( record, index );
+	} );
+
 	return record;
 }
 
-export function applyFormat( record, start, end, format ) {
-	const { formats } = record;
+export function applyFormat( { formats, text }, start, end, format ) {
 	let i = formats.length;
 
 	while ( i-- ) {
@@ -259,5 +269,5 @@ export function applyFormat( record, start, end, format ) {
 		}
 	}
 
-	return record;
+	return { formats, text };
 }

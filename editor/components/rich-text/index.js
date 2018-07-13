@@ -10,8 +10,6 @@ import {
 	find,
 	defer,
 	noop,
-	mapKeys,
-	range as _range,
 } from 'lodash';
 import 'element-closest';
 
@@ -62,20 +60,22 @@ const TINYMCE_ZWSP = '\uFEFF';
 
 const transforms = [
 	( record ) => {
-		if ( ! /`([^`]+)`/.test( record.text ) ) {
+		if ( record.text.indexOf( '`' ) === -1 ) {
 			return record;
 		}
 
 		const match = record.text.match( /`([^`]+)`/ );
 
-		record = { ...record };
+		if ( ! match ) {
+			return record;
+		}
 
+		const { deleteCharacters, applyFormat } = richTextStructure;
 		const start = match.index;
 		const end = start + match[ 1 ].length - 1;
 
-		richTextStructure.deleteCharacter( record, match.index + match[ 0 ].length - 1 );
-		richTextStructure.deleteCharacter( record, match.index );
-		richTextStructure.applyFormat( record, start, end, { type: 'code' } );
+		record = deleteCharacters( record, [ start, match.index + match[ 0 ].length - 1 ] );
+		record = applyFormat( record, start, end, { type: 'code' } );
 
 		return record;
 	},
