@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import { difference } from 'lodash';
+
+/**
  * WordPress dependencies
  */
 import { IconButton } from '@wordpress/components';
@@ -9,14 +14,13 @@ import { compose } from '@wordpress/element';
  */
 import BlockSettingsMenuPluginsGroup from './block-settings-menu-plugins-group';
 
-const shouldRenderItem = ( currentBlockName, allowedBlockNames ) => ! Array.isArray( allowedBlockNames ) ||
-	( Array.isArray( allowedBlockNames ) &&
-		allowedBlockNames.some( ( blockName ) => blockName === currentBlockName ) );
+const shouldRenderItem = ( selectedBlockNames, allowedBlockNames ) => ! Array.isArray( allowedBlockNames ) ||
+	difference( selectedBlockNames, allowedBlockNames ).length === 0;
 
 const BlockSettingsMenuPluginsItem = ( { allowedBlocks, icon, label, onClick, small, role } ) => (
 	<BlockSettingsMenuPluginsGroup>
-		{ ( { currentBlockName, onClose } ) => {
-			if ( ! shouldRenderItem( currentBlockName, allowedBlocks ) ) {
+		{ ( { selectedBlocks, onClose } ) => {
+			if ( ! shouldRenderItem( selectedBlocks, allowedBlocks ) ) {
 				return null;
 			}
 			return ( <IconButton
