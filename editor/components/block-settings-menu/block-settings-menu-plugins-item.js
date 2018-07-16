@@ -12,7 +12,7 @@ import { compose } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import PluginBlockSettingsMenuGroup from './plugin-block-settings-menu-group';
+import BlockSettingsMenuPluginsGroup from './block-settings-menu-plugins-group';
 
 const isEverySelectedBlockAllowed = ( selected, allowed ) => difference( selected, allowed ).length === 0;
 
@@ -30,8 +30,8 @@ const isEverySelectedBlockAllowed = ( selected, allowed ) => difference( selecte
 const shouldRenderItem = ( selectedBlockNames, allowedBlockNames ) => ! Array.isArray( allowedBlockNames ) ||
 	isEverySelectedBlockAllowed( selectedBlockNames, allowedBlockNames );
 
-const PluginBlockSettingsMenuItem = ( { allowedBlocks, icon, label, onClick, small, role } ) => (
-	<PluginBlockSettingsMenuGroup>
+const BlockSettingsMenuPluginsItem = ( { allowedBlocks, icon, label, onClick, small, role } ) => (
+	<BlockSettingsMenuPluginsGroup>
 		{ ( { selectedBlocks, onClose } ) => {
 			if ( ! shouldRenderItem( selectedBlocks, allowedBlocks ) ) {
 				return null;
@@ -46,7 +46,7 @@ const PluginBlockSettingsMenuItem = ( { allowedBlocks, icon, label, onClick, sma
 				{ ! small && label }
 			</IconButton> );
 		} }
-	</PluginBlockSettingsMenuGroup>
+	</BlockSettingsMenuPluginsGroup>
 );
 
-export default PluginBlockSettingsMenuItem;
+export default BlockSettingsMenuPluginsItem;

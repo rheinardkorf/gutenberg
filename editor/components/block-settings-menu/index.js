@@ -24,7 +24,7 @@ import SharedBlockDeleteButton from './shared-block-delete-button';
 import BlockHTMLConvertButton from './block-html-convert-button';
 import BlockUnknownConvertButton from './block-unknown-convert-button';
 import _BlockSettingsMenuFirstItem from './block-settings-menu-first-item';
-import PluginBlockSettingsMenuGroup from './plugin-block-settings-menu-group';
+import BlockSettingsMenuPluginsGroup from './block-settings-menu-plugins-group';
 
 export class BlockSettingsMenu extends Component {
 	constructor() {
@@ -100,7 +100,7 @@ export class BlockSettingsMenu extends Component {
 							{ count === 1 && <BlockHTMLConvertButton uid={ firstBlockUID } role="menuitem" /> }
 							<BlockDuplicateButton uids={ uids } rootUID={ rootUID } role="menuitem" />
 							{ count === 1 && <SharedBlockConvertButton uid={ firstBlockUID } onToggle={ onClose } itemsRole="menuitem" /> }
-							<PluginBlockSettingsMenuGroup.Slot fillProps={ { uids, onClose } } />
+							<BlockSettingsMenuPluginsGroup.Slot fillProps={ { uids, onClose } } />
 							<div className="editor-block-settings-menu__separator" />
 							{ count === 1 && <SharedBlockDeleteButton uid={ firstBlockUID } onToggle={ onClose } itemsRole="menuitem" /> }
 							<BlockRemoveButton uids={ uids } role="menuitem" />
