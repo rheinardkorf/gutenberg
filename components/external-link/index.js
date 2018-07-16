@@ -8,6 +8,7 @@ import { compact, uniq } from 'lodash';
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
+import { forwardRef } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -15,7 +16,7 @@ import { __ } from '@wordpress/i18n';
 import Dashicon from '../dashicon';
 import './style.scss';
 
-function ExternalLink( { href, children, className, rel = '', ...additionalProps } ) {
+export function ExternalLink( { href, children, className, rel = '', ...additionalProps }, ref ) {
 	rel = uniq( compact( [
 		...rel.split( ' ' ),
 		'external',
@@ -24,7 +25,7 @@ function ExternalLink( { href, children, className, rel = '', ...additionalProps
 	] ) ).join( ' ' );
 	const classes = classnames( 'components-external-link', className );
 	return (
-		<a { ...additionalProps } className={ classes } href={ href } target="_blank" rel={ rel }>
+		<a { ...additionalProps } className={ classes } href={ href } target="_blank" rel={ rel } ref={ ref }>
 			{ children }
 			<span className="screen-reader-text">
 				{
@@ -37,4 +38,4 @@ function ExternalLink( { href, children, className, rel = '', ...additionalProps
 	);
 }
 
-export default ExternalLink;
+export default forwardRef( ExternalLink );
