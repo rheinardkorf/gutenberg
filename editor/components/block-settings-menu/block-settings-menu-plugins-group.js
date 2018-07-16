@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { flatten, isEmpty, map } from 'lodash';
+import { isEmpty, map } from 'lodash';
 
 /**
  * WordPress dependencies
@@ -12,19 +12,22 @@ import { withSelect } from '@wordpress/data';
 
 const { Fill: BlockSettingsMenuPluginsGroup, Slot } = createSlotFill( 'BlockSettingsMenuPluginsGroup' );
 
-const BlockSettingsMenuPluginsGroupSlot = ( { fillProps, selectedBlocks } ) => (
-	<Slot fillProps={ { ...fillProps, selectedBlocks } } >
-		{ ( fills ) => ! isEmpty( fills ) && (
-			<Fragment>
-				<div className="editor-block-settings-menu__separator" />
-				{ fills }
-			</Fragment>
-		) }
-	</Slot>
-);
+const BlockSettingsMenuPluginsGroupSlot = ( { fillProps, selectedBlocks } ) => {
+	selectedBlocks = map( selectedBlocks, ( block ) => block.name );
+	return (
+		<Slot fillProps={ { ...fillProps, selectedBlocks } } >
+			{ ( fills ) => ! isEmpty( fills ) && (
+				<Fragment>
+					<div className="editor-block-settings-menu__separator" />
+					{ fills }
+				</Fragment>
+			) }
+		</Slot>
+	);
+};
 
 BlockSettingsMenuPluginsGroup.Slot = withSelect( ( select, { fillProps: { uids } } ) => ( {
-	selectedBlocks: map( flatten( [ uids ] ), ( uid ) => select( 'core/editor' ).getBlockName( uid ) ),
+	selectedBlocks: select( 'core/editor' ).getBlocksByUID( uids ),
 } ) )( BlockSettingsMenuPluginsGroupSlot );
 
 export default BlockSettingsMenuPluginsGroup;
