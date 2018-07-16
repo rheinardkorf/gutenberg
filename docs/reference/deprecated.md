@@ -16,6 +16,8 @@ Gutenberg's deprecation policy is intended to support backwards-compatibility fo
  - The `wp.editor.MediaPlaceholder` component `onSelectUrl` prop has been renamed to `onSelectURL`.
  - The `wp.editor.UrlInput` component has been renamed to `wp.editor.URLInput`.
  - The Text Columns block has been removed. Please use the Columns block instead.
+ - `wp.editor.getColorName` has been removed. Please use `wp.editor.getColorObjectByValue` instead.
+ - `value` property in color objects passed by `wp.editor.withColors` has been removed. Please use color property instead.
 
 ## 3.4.0
 
