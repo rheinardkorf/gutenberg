@@ -9,8 +9,8 @@ import { filter, groupBy } from 'lodash';
 import { getBlockTransforms, findTransform, richTextStructure } from '@wordpress/blocks';
 
 export default function() {
-	const { onReplace } = this.props;
-	const { splice, applyFormat } = richTextStructure;
+	const { onReplace, multiline } = this.props;
+	const { splice, applyFormat, getTextContent } = richTextStructure;
 
 	const {
 		// enter: enterPatterns,
@@ -23,22 +23,25 @@ export default function() {
 				return record;
 			}
 
+			const text = getTextContent( record );
 			const transformation = findTransform( patterns, ( item ) => {
-				return item.regExp.test( record.text );
+				return item.regExp.test( text );
 			} );
 
 			if ( ! transformation ) {
 				return record;
 			}
 
-			const result = record.text.match( transformation.regExp );
+			const result = text.match( transformation.regExp );
 
 			const block = transformation.transform( {
-				content: splice( record, 0, result[ 0 ].length ),
+				content: splice( record.value, 0, result[ 0 ].length ),
 				match: result,
 			} );
 
 			onReplace( [ block ] );
+
+			return record;
 		},
 		// To do: only on enter.
 		// ( record ) => {
@@ -59,11 +62,17 @@ export default function() {
 		// 	onReplace( [ block ] );
 		// },
 		( record ) => {
-			if ( record.text.indexOf( '`' ) === -1 ) {
+			if ( multiline ) {
 				return record;
 			}
 
-			const match = record.text.match( /`([^`]+)`/ );
+			const text = getTextContent( record );
+
+			if ( text.indexOf( '`' ) === -1 ) {
+				return record;
+			}
+
+			const match = text.match( /`([^`]+)`/ );
 
 			if ( ! match ) {
 				return record;

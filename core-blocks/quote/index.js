@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { castArray, get, isString, isEmpty, omit } from 'lodash';
+import { castArray, get, isString, omit } from 'lodash';
 
 /**
  * WordPress dependencies
@@ -63,12 +63,8 @@ export const settings = {
 				isMultiBlock: true,
 				blocks: [ 'core/paragraph' ],
 				transform: ( attributes ) => {
-					const items = attributes.map( ( { content } ) => content );
-					const hasItems = ! items.every( isEmpty );
 					return createBlock( 'core/quote', {
-						value: hasItems ?
-							items.map( ( content, index ) => ( { children: <p key={ index }>{ content }</p> } ) ) :
-							[],
+						value: attributes.map( ( { content } ) => content ),
 					} );
 				},
 			},

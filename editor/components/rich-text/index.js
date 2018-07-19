@@ -32,7 +32,6 @@ import { rawHandler, richTextStructure } from '@wordpress/blocks';
  * Internal dependencies
  */
 import './style.scss';
-import Autocomplete from '../autocomplete';
 import BlockFormatControls from '../block-format-controls';
 import FormatToolbar from './format-toolbar';
 import TinyMCE from './tinymce';
@@ -92,6 +91,8 @@ export class RichText extends Component {
 		this.onPaste = this.onPaste.bind( this );
 		this.onCreateUndoLevel = this.onCreateUndoLevel.bind( this );
 		this.setFocusedElement = this.setFocusedElement.bind( this );
+		this.onInput = this.onInput.bind( this );
+		this.onSelectionChange = this.onSelectionChange.bind( this );
 
 		this.state = {
 			formats: {},
@@ -100,6 +101,7 @@ export class RichText extends Component {
 
 		this.containerRef = createRef();
 		this.patterns = patterns.call( this );
+		this.selection = [];
 	}
 
 	/**
@@ -139,9 +141,10 @@ export class RichText extends Component {
 		editor.on( 'PastePreProcess', this.onPastePreProcess, true /* Add before core handlers */ );
 		editor.on( 'paste', this.onPaste, true /* Add before core handlers */ );
 		editor.on( 'focus', this.onFocus );
-		editor.on( 'input', this.onChange );
+		editor.on( 'input', this.onInput );
 		// The change event in TinyMCE fires every time an undo level is added.
 		editor.on( 'change', this.onCreateUndoLevel );
+		editor.on( 'selectionchange', this.onSelectionChange );
 
 		patterns.apply( this, [ editor ] );
 
@@ -358,16 +361,45 @@ export class RichText extends Component {
 	 * Handles any case where the content of the TinyMCE instance has changed.
 	 */
 
-	onChange() {
-		const record = this.getContent();
+	onInput() {
+		const { multiline } = this.props;
+		const rootNode = this.editor.getBody();
+		const range = this.editor.selection.getRng();
+		const record = richTextStructure.createWithSelection( rootNode, range, multiline );
+		const transformed = this.patterns.reduce( ( accu, transform ) => transform( accu ), record );
 
-		this.savedContent = this.patterns.reduce( ( accu, transform ) => transform( accu ), record );
-
-		if ( record !== this.savedContent ) {
-			this.setContent( this.savedContent );
+		if ( record !== transformed ) {
+			richTextStructure.apply( transformed, this.editor.getBody() );
+			this.savedContent = transformed.value;
+		} else {
+			this.savedContent = record.value;
 		}
 
 		this.props.onChange( this.savedContent );
+	}
+
+	onChange() {
+		const { multiline } = this.props;
+		const rootNode = this.editor.getBody();
+		const range = this.editor.selection.getRng();
+		const record = richTextStructure.createWithSelection( rootNode, range, multiline );
+
+		this.savedContent = record.value;
+		this.props.onChange( this.savedContent );
+	}
+
+	onSelectionChange() {
+		const rootNode = this.editor.getBody();
+
+		if ( document.activeElement !== rootNode ) {
+			return;
+		}
+
+		const { multiline } = this.props;
+		const range = this.editor.selection.getRng();
+		const { selection } = richTextStructure.createWithSelection( rootNode, range, multiline );
+
+		this.selection = selection;
 	}
 
 	onCreateUndoLevel( event ) {
@@ -691,11 +723,6 @@ export class RichText extends Component {
 		}
 	}
 
-	getContent() {
-		const { format, multiline } = this.props;
-		return domToFormat( this.editor.getBody(), multiline, format );
-	}
-
 	componentDidUpdate( prevProps ) {
 		// The `savedContent` var allows us to avoid updating the content right after an `onChange` call
 		if (
@@ -812,7 +839,6 @@ export class RichText extends Component {
 			keepPlaceholderOnFocus = false,
 			isSelected,
 			formatters,
-			autocompleters,
 			format,
 		} = this.props;
 
@@ -856,39 +882,31 @@ export class RichText extends Component {
 						containerRef={ this.containerRef }
 					/>
 				}
-				<Autocomplete onReplace={ this.props.onReplace } completers={ autocompleters }>
-					{ ( { isExpanded, listBoxId, activeId } ) => (
-						<Fragment>
-							<TinyMCE
-								tagName={ Tagname }
-								getSettings={ this.getSettings }
-								onSetup={ this.onSetup }
-								style={ style }
-								defaultValue={ value }
-								format={ format }
-								multiline={ MultilineTag }
-								isPlaceholderVisible={ isPlaceholderVisible }
-								aria-label={ placeholder }
-								aria-autocomplete="list"
-								aria-expanded={ isExpanded }
-								aria-owns={ listBoxId }
-								aria-activedescendant={ activeId }
-								{ ...ariaProps }
-								className={ className }
-								key={ key }
-							/>
-							{ isPlaceholderVisible &&
-								<Tagname
-									className={ classnames( 'editor-rich-text__tinymce', className ) }
-									style={ style }
-								>
-									{ MultilineTag ? <MultilineTag>{ placeholder }</MultilineTag> : placeholder }
-								</Tagname>
-							}
-							{ isSelected && <Slot name="RichText.Siblings" /> }
-						</Fragment>
-					) }
-				</Autocomplete>
+
+				<TinyMCE
+					tagName={ Tagname }
+					getSettings={ this.getSettings }
+					onSetup={ this.onSetup }
+					style={ style }
+					defaultValue={ value }
+					format={ format }
+					multiline={ MultilineTag }
+					isPlaceholderVisible={ isPlaceholderVisible }
+					aria-label={ placeholder }
+					aria-autocomplete="list"
+					{ ...ariaProps }
+					className={ className }
+					key={ key }
+				/>
+				{ isPlaceholderVisible &&
+					<Tagname
+						className={ classnames( 'editor-rich-text__tinymce', className ) }
+						style={ style }
+					>
+						{ MultilineTag ? <MultilineTag>{ placeholder }</MultilineTag> : placeholder }
+					</Tagname>
+				}
+				{ isSelected && <Slot name="RichText.Siblings" /> }
 			</div>
 		);
 	}

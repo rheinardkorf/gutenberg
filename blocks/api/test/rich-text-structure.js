@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 const { window } = new JSDOM();
 const { document } = window;
 
-import { create, toString, concat, isEmpty, splice, applyFormat } from '../rich-text-structure';
+import { create, createWithSelection, toString, concat, isEmpty, splice, applyFormat } from '../rich-text-structure';
 
 function createNode( HTML ) {
 	document.body.innerHTML = HTML;
@@ -14,63 +14,87 @@ function createNode( HTML ) {
 describe( 'create', () => {
 	it( 'should extract text with formats', () => {
 		const element = createNode( '<p>one <em>two 🍒</em> <a href="#"><img src=""><strong>three</strong></a><img src=""></p>' );
+		const range = {
+			startOffset: 1,
+			startContainer: element.querySelector( 'em' ).firstChild,
+			endOffset: 0,
+			endContainer: element.querySelector( 'strong' ).firstChild,
+		};
 
-		deepEqual( create( element ), {
-			formats: [
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				undefined,
-				[ { type: 'a', attributes: { href: '#' } }, { type: 'img', attributes: { src: '' }, object: true }, { type: 'strong' } ],
-				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
-				[ { type: 'img', attributes: { src: '' }, object: true } ],
-			],
-			text: 'one two 🍒 three',
+		deepEqual( createWithSelection( element, range ), {
+			value: {
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					undefined,
+					[ { type: 'a', attributes: { href: '#' } }, { type: 'img', attributes: { src: '' }, object: true }, { type: 'strong' } ],
+					[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+					[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+					[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+					[ { type: 'a', attributes: { href: '#' } }, { type: 'strong' } ],
+					[ { type: 'img', attributes: { src: '' }, object: true } ],
+				],
+				text: 'one two 🍒 three',
+			},
+			selection: {
+				start: 5,
+				end: 11,
+			},
 		} );
 	} );
 
 	it( 'should extract multiline text', () => {
 		const element = createNode( '<div><p>one <em>two</em> three</p><p>test</p></div>' );
+		const range = {
+			startOffset: 1,
+			startContainer: element.querySelector( 'em' ).firstChild,
+			endOffset: 0,
+			endContainer: element.lastChild,
+		};
 
-		deepEqual( create( element, 'p' ), [
-			{
-				formats: [
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-					[ { type: 'em' } ],
-					[ { type: 'em' } ],
-					[ { type: 'em' } ],
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-				],
-				text: 'one two three',
+		deepEqual( createWithSelection( element, range, 'p' ), {
+			value: [
+				{
+					formats: [
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+						[ { type: 'em' } ],
+						[ { type: 'em' } ],
+						[ { type: 'em' } ],
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+					],
+					text: 'one two three',
+				},
+				{
+					formats: [
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+					],
+					text: 'test',
+				},
+			],
+			selection: {
+				start: [ 0, 5 ],
+				end: [ 1 ],
 			},
-			{
-				formats: [
-					undefined,
-					undefined,
-					undefined,
-					undefined,
-				],
-				text: 'test',
-			},
-		] );
+		} );
 	} );
 
 	it( 'should extract multiline text list', () => {
@@ -99,6 +123,75 @@ describe( 'create', () => {
 				text: 'three',
 			},
 		] );
+	} );
+
+	it( 'should skip bogus 1', () => {
+		const element = createNode( '<p><strong data-mce-selected="inline-boundary">&#65279;test</strong></p>' );
+		const range = {
+			startOffset: 1,
+			startContainer: element.querySelector( 'strong' ).firstChild,
+			endOffset: 1,
+			endContainer: element.querySelector( 'strong' ).firstChild,
+		};
+		const settings = {
+			removeNodeMatch: ( node ) => node.getAttribute( 'data-mce-bogus' ) === 'all',
+			unwrapNodeMatch: ( node ) => !! node.getAttribute( 'data-mce-bogus' ),
+			removeAttributeMatch: ( attribute ) => attribute.indexOf( 'data-mce-' ) === 0,
+			filterString: ( string ) => string.replace( '\uFEFF', '' ),
+		};
+
+		deepEqual( createWithSelection( element, range, false, settings ), {
+			value: {
+				formats: [
+					[ { type: 'strong' } ],
+					[ { type: 'strong' } ],
+					[ { type: 'strong' } ],
+					[ { type: 'strong' } ],
+				],
+				text: 'test',
+			},
+			selection: {
+				start: 0,
+				end: 0,
+			},
+		} );
+	} );
+
+	it( 'should skip bogus 2', () => {
+		const element = createNode( '<p><strong>test<span data-mce-bogus="all">test</span></strong> test</p>' );
+		const range = {
+			startOffset: 1,
+			startContainer: element.lastChild,
+			endOffset: 1,
+			endContainer: element.lastChild,
+		};
+		const settings = {
+			removeNodeMatch: ( node ) => node.getAttribute( 'data-mce-bogus' ) === 'all',
+			unwrapNodeMatch: ( node ) => !! node.getAttribute( 'data-mce-bogus' ),
+			removeAttributeMatch: ( attribute ) => attribute.indexOf( 'data-mce-' ) === 0,
+			filterString: ( string ) => string.replace( '\uFEFF', '' ),
+		};
+
+		deepEqual( createWithSelection( element, range, false, settings ), {
+			value: {
+				formats: [
+					[ { type: 'strong' } ],
+					[ { type: 'strong' } ],
+					[ { type: 'strong' } ],
+					[ { type: 'strong' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'test test',
+			},
+			selection: {
+				start: 5,
+				end: 5,
+			},
+		} );
 	} );
 } );
 
@@ -286,38 +379,50 @@ describe( 'isEmpty', () => {
 describe( 'splice', () => {
 	it( 'should delete and insert', () => {
 		const record = {
-			formats: [
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				[ { type: 'em' } ],
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-			],
-			text: 'one two three',
+			value: {
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'one two three',
+			},
+			selection: {
+				start: 6,
+				end: 6,
+			},
 		};
 
 		const expected = {
-			formats: [
-				undefined,
-				undefined,
-				[ { type: 'strong' } ],
-				[ { type: 'em' } ],
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-				undefined,
-			],
-			text: 'onao three',
+			value: {
+				formats: [
+					undefined,
+					undefined,
+					[ { type: 'strong' } ],
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'onao three',
+			},
+			selection: {
+				start: 3,
+				end: 3,
+			},
 		};
 
 		expect( splice( record, 2, 4, 'a', [ [ { type: 'strong' } ] ] ) ).toEqual( expected );

@@ -161,7 +161,7 @@ export function getBlockAttribute( attributeKey, attributeSchema, innerHTML, com
 	let value;
 
 	if ( attributeSchema.source === 'rich-text' ) {
-		attributeSchema.default = create();
+		attributeSchema.default = create( null, attributeSchema.multiline );
 	}
 
 	switch ( attributeSchema.source ) {

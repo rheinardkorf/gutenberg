@@ -4,29 +4,58 @@
 
 const { TEXT_NODE, ELEMENT_NODE } = window.Node;
 
-export function create( element, multiline, settings ) {
+export function createWithSelection( element, range, multiline, settings ) {
 	if ( ! multiline ) {
-		return createRecord( element, settings );
+		return createRecord( element, range, settings );
 	}
 
 	if ( ! element || ! element.hasChildNodes() ) {
-		return [];
+		return {
+			value: [],
+			selection: {},
+		};
 	}
 
-	return Array.from( element.childNodes ).reduce( ( acc, child ) => {
+	return Array.from( element.childNodes ).reduce( ( acc, child, index ) => {
 		if ( child.nodeName.toLowerCase() === multiline ) {
-			acc.push( createRecord( child, settings ) );
+			const { selection, value } = createRecord( child, range, settings );
+
+			if ( range ) {
+				if ( selection.start !== undefined ) {
+					acc.selection.start = [ index ].concat( selection.start );
+				} else if ( child === range.startContainer ) {
+					acc.selection.start = [ index ];
+				}
+
+				if ( selection.end !== undefined ) {
+					acc.selection.end = [ index ].concat( selection.end );
+				} else if ( child === range.endContainer ) {
+					acc.selection.end = [ index ];
+				}
+			}
+
+			acc.value.push( value );
 		}
 
 		return acc;
-	}, [] );
+	}, {
+		value: [],
+		selection: {},
+	} );
 }
 
-function createRecord( element, settings = {} ) {
+export function create( element, multiline, settings ) {
+	return createWithSelection( element, null, multiline, settings ).value;
+}
+
+function createRecord( element, range, settings = {} ) {
 	if ( ! element ) {
 		return {
-			formats: [],
-			text: '',
+			value: {
+				formats: [],
+				text: '',
+			},
+			selection: {},
 		};
 	}
 
@@ -42,28 +71,54 @@ function createRecord( element, settings = {} ) {
 		! unwrapNodeMatch( element )
 	) {
 		return {
-			formats: Array( 1 ),
-			text: '\n',
+			value: {
+				formats: Array( 1 ),
+				text: '\n',
+			},
+			selection: {},
 		};
 	}
 
 	if ( ! element.hasChildNodes() ) {
 		return {
-			formats: [],
-			text: '',
+			value: {
+				formats: [],
+				text: '',
+			},
+			selection: {},
 		};
 	}
 
 	return Array.from( element.childNodes ).reduce( ( accumulator, node ) => {
-		const { formats } = accumulator;
+		const { formats } = accumulator.value;
 
 		if ( node.nodeType === TEXT_NODE ) {
-			const text = filterString( node.nodeValue );
-			accumulator.text += text;
+			if ( range ) {
+				if ( node === range.startContainer ) {
+					accumulator.selection.start = accumulator.value.text.length + filterString( node.nodeValue.slice( 0, range.startOffset ) ).length;
+				}
+
+				if ( node === range.endContainer ) {
+					accumulator.selection.end = accumulator.value.text.length + filterString( node.nodeValue.slice( 0, range.endOffset ) ).length;
+				}
+			}
+
+			const text = filterString( node.nodeValue, accumulator.selection );
+			accumulator.value.text += text;
 			formats.push( ...Array( text.length ) );
 		} else if ( node.nodeType === ELEMENT_NODE ) {
 			if ( removeNodeMatch( node ) ) {
 				return accumulator;
+			}
+
+			if ( range ) {
+				if ( node === range.startContainer ) {
+					accumulator.selection.start = accumulator.value.text.length + range.startOffset;
+				}
+
+				if ( node === range.endContainer ) {
+					accumulator.selection.end = accumulator.value.text.length + range.endOffset;
+				}
 			}
 
 			let format;
@@ -75,9 +130,9 @@ function createRecord( element, settings = {} ) {
 				format = attributes ? { type, attributes } : { type };
 			}
 
-			const value = createRecord( node, settings );
+			const { value, selection } = createRecord( node, range, settings );
 			const text = value.text;
-			const start = accumulator.text.length;
+			const start = accumulator.value.text.length;
 
 			if ( format && text.length === 0 ) {
 				format.object = true;
@@ -88,7 +143,7 @@ function createRecord( element, settings = {} ) {
 					formats[ start ] = [ format ];
 				}
 			} else {
-				accumulator.text += text;
+				accumulator.value.text += text;
 
 				let i = value.formats.length;
 
@@ -112,13 +167,67 @@ function createRecord( element, settings = {} ) {
 					}
 				}
 			}
+
+			if ( selection.start !== undefined ) {
+				accumulator.selection.start = start + selection.start;
+			}
+
+			if ( selection.end !== undefined ) {
+				accumulator.selection.end = start + selection.end;
+			}
 		}
 
 		return accumulator;
 	}, {
-		formats: [],
-		text: '',
+		value: {
+			formats: [],
+			text: '',
+		},
+		selection: {},
 	} );
+}
+
+export function apply( value, current, multiline ) {
+	const { body: future, selection } = toDOM( value, multiline );
+	let i = 0;
+
+	while ( future.firstChild ) {
+		const currentChild = current.childNodes[ i ];
+		const futureNodeType = future.firstChild.nodeType;
+
+		if ( ! currentChild ) {
+			current.appendChild( future.firstChild );
+		} else if (
+			futureNodeType !== currentChild.nodeType ||
+			futureNodeType !== TEXT_NODE ||
+			future.firstChild.nodeValue !== currentChild.nodeValue
+		) {
+			current.replaceChild( future.firstChild, currentChild );
+		} else {
+			future.removeChild( future.firstChild );
+		}
+
+		i++;
+	}
+
+	const { node: startContainer, offset: startOffset } = getNodeByPath( current, selection.startPath );
+	const { node: endContainer, offset: endOffset } = getNodeByPath( current, selection.endPath );
+
+	const sel = window.getSelection();
+	const range = current.ownerDocument.createRange();
+	const isCollapsed = startContainer === endContainer && startOffset === endOffset;
+
+	if ( isCollapsed && startOffset === 0 && startContainer.nodeType === TEXT_NODE ) {
+		startContainer.insertData( 0, '\uFEFF' );
+		range.setStart( startContainer, 1 );
+		range.setEnd( endContainer, 1 );
+	} else {
+		range.setStart( startContainer, startOffset );
+		range.setEnd( endContainer, endOffset );
+	}
+
+	sel.removeAllRanges();
+	sel.addRange( range );
 }
 
 function getAttributes( element, settings = {} ) {
@@ -132,88 +241,130 @@ function getAttributes( element, settings = {} ) {
 
 	return Array.from( element.attributes ).reduce( ( acc, { name, value } ) => {
 		if ( ! removeAttributeMatch( name ) ) {
+			acc = acc || {};
 			acc[ name ] = value;
 		}
 
 		return acc;
-	}, {} );
+	}, undefined );
 }
 
-function prependChild( parent, child ) {
-	return parent.insertBefore( child, parent.firstChild );
-}
+function createPathToNode( node, rootNode, path ) {
+	const parentNode = node.parentNode;
+	let i = 0;
 
-export function toString( record, multiline ) {
-	if ( multiline ) {
-		const open = '<' + multiline + '>';
-		const close = '</' + multiline + '>';
-
-		return open + ( record.map( ( v ) => toString( v ) ).join( close + open ) ) + close;
+	while ( ( node = node.previousSibling ) ) {
+		i++;
 	}
 
-	const { formats, text } = record;
+	path = [ i, ...path ];
+
+	if ( parentNode !== rootNode ) {
+		path = createPathToNode( parentNode, rootNode, path );
+	}
+
+	return path;
+}
+
+function getNodeByPath( node, path ) {
+	path = [ ...path ];
+
+	while ( node && path.length > 1 ) {
+		node = node.childNodes[ path.shift() ];
+	}
+
+	return {
+		node,
+		offset: path[ 0 ],
+	};
+}
+
+export function toDOM( { value, selection = {} }, multiline, _tag ) {
 	const doc = document.implementation.createHTMLDocument( '' );
-	const { body } = doc;
+	const range = doc.createRange && doc.createRange();
+	let { body } = doc;
 
-	let i = text.length;
+	if ( multiline ) {
+		value.forEach( ( piece ) => {
+			body.appendChild( toDOM( { value: piece }, false, multiline ).body );
+		} );
 
-	if ( formats[ i ] ) {
-		formats[ i ].reduce( ( element, { type, attributes } ) => {
+		return {
+			body,
+			range,
+		};
+	}
+
+	const { formats, text } = value;
+	const { start, end } = selection;
+	let startPath = [];
+	let endPath = [];
+
+	if ( _tag ) {
+		body = body.appendChild( doc.createElement( _tag ) );
+	}
+
+	for ( let i = 0, max = text.length; i < max; i++ ) {
+		const character = text.charAt( i );
+		const nextFormats = formats[ i ] || [];
+		let pointer = body.lastChild || body.appendChild( doc.createTextNode( '' ) );
+
+		if ( nextFormats ) {
+			nextFormats.forEach( ( { type, attributes, object } ) => {
+				if ( pointer && type === pointer.nodeName.toLowerCase() ) {
+					pointer = pointer.lastChild;
+					return;
+				}
+
+				const newNode = doc.createElement( type );
+				const parentNode = pointer.parentNode;
+
+				for ( const key in attributes ) {
+					newNode.setAttribute( key, attributes[ key ] );
+				}
+
+				parentNode.appendChild( newNode );
+				pointer = ( object ? parentNode : newNode ).appendChild( doc.createTextNode( '' ) );
+			} );
+		}
+
+		if ( pointer.nodeType === TEXT_NODE ) {
+			pointer.appendData( character );
+		} else {
+			pointer = pointer.parentNode.appendChild( doc.createTextNode( character ) );
+		}
+
+		if ( start === i ) {
+			startPath = createPathToNode( pointer, body, [ pointer.nodeValue.length - 1 ] );
+		}
+
+		if ( end === i ) {
+			endPath = createPathToNode( pointer, body, [ pointer.nodeValue.length - 1 ] );
+		}
+	}
+
+	const last = text.length;
+
+	if ( formats[ last ] ) {
+		formats[ last ].reduce( ( element, { type, attributes } ) => {
 			const newNode = doc.createElement( type );
 
 			for ( const key in attributes ) {
 				newNode.setAttribute( key, attributes[ key ] );
 			}
 
-			return element.insertBefore( newNode, element.firstChild );
+			return element.appendChild( newNode );
 		}, body );
 	}
 
-	while ( i-- ) {
-		const character = text[ i ];
-		const nextFormats = formats[ i ];
-		let pointer = body.firstChild;
+	return {
+		body,
+		selection: { startPath, endPath },
+	};
+}
 
-		if ( nextFormats ) {
-			if ( ! pointer ) {
-				pointer = prependChild( body, doc.createTextNode( '' ) );
-			}
-
-			nextFormats.forEach( ( { type, attributes, object } ) => {
-				if ( pointer && type === pointer.nodeName.toLowerCase() ) {
-					pointer = pointer.firstChild;
-					return;
-				}
-
-				const newNode = doc.createElement( type );
-
-				for ( const key in attributes ) {
-					newNode.setAttribute( key, attributes[ key ] );
-				}
-
-				prependChild( pointer.parentNode, newNode );
-
-				if ( object ) {
-					prependChild( newNode.parentNode, doc.createTextNode( '' ) );
-					pointer = newNode.nextSibling;
-				} else {
-					pointer = newNode.appendChild( doc.createTextNode( '' ) );
-				}
-			} );
-
-			if ( pointer.nodeType === TEXT_NODE ) {
-				pointer.insertData( 0, character );
-			} else {
-				prependChild( pointer.parentNode, doc.createTextNode( character ) );
-			}
-		} else if ( pointer && pointer.nodeType === TEXT_NODE ) {
-			pointer.insertData( 0, character );
-		} else {
-			prependChild( body, doc.createTextNode( character ) );
-		}
-	}
-
-	return body.innerHTML;
+export function toString( record, multiline ) {
+	return toDOM( { value: record }, multiline ).body.innerHTML;
 }
 
 export function concat( record, ...records ) {
@@ -238,7 +389,19 @@ export function isEmpty( record ) {
 	return text.length === 0 && formats.length === 0;
 }
 
-export function splice( { formats, text }, start, deleteCount, textToInsert = '', formatsToInsert = [] ) {
+export function splice( { formats, text, selection, value }, start, deleteCount, textToInsert = '', formatsToInsert = [] ) {
+	if ( selection ) {
+		const diff = textToInsert.length - deleteCount;
+
+		return {
+			selection: {
+				start: selection.start + ( selection.start > start ? diff : 0 ),
+				end: selection.end + ( selection.end > start + diff ? diff : 0 ),
+			},
+			value: splice( value, start, deleteCount, textToInsert, formatsToInsert ),
+		};
+	}
+
 	if ( ! Array.isArray( formatsToInsert ) ) {
 		formatsToInsert = Array( textToInsert.length ).fill( [ formatsToInsert ] );
 	}
@@ -249,7 +412,18 @@ export function splice( { formats, text }, start, deleteCount, textToInsert = ''
 	return { formats, text };
 }
 
-export function applyFormat( { formats, text }, start, end, format ) {
+export function getTextContent( { text, value } ) {
+	return text || value.text;
+}
+
+export function applyFormat( { formats, text, value, selection }, start, end, format ) {
+	if ( value !== undefined ) {
+		return {
+			selection,
+			value: applyFormat( value, start, end, format ),
+		};
+	}
+
 	let i = formats.length;
 
 	while ( i-- ) {
