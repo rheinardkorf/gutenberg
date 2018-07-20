@@ -4,7 +4,17 @@ import { JSDOM } from 'jsdom';
 const { window } = new JSDOM();
 const { document } = window;
 
-import { create, createWithSelection, toString, concat, isEmpty, splice, applyFormat, removeFormat } from '../rich-text-structure';
+import {
+	create,
+	createWithSelection,
+	toString,
+	concat,
+	isEmpty,
+	splice,
+	applyFormat,
+	removeFormat,
+	split,
+} from '../rich-text-structure';
 
 function createNode( HTML ) {
 	document.body.innerHTML = HTML;
@@ -568,5 +578,134 @@ describe( 'removeFormat', () => {
 		};
 
 		expect( removeFormat( record, 'strong', 3, 6 ) ).toEqual( expected );
+	} );
+} );
+
+describe( 'split', () => {
+	it( 'should split', () => {
+		const record = {
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
+			text: 'one two three',
+		};
+
+		const expected = [
+			{
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+				],
+				text: 'one tw',
+			},
+			{
+				formats: [
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'o three',
+			},
+		];
+
+		expect( split( record, 6, 6 ) ).toEqual( expected );
+	} );
+
+	it( 'should split with selection', () => {
+		const record = {
+			value: {
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'one two three',
+			},
+			selection: {
+				start: 6,
+				end: 6,
+			},
+		};
+
+		const expected = [
+			{
+				value: {
+					formats: [
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+						[ { type: 'em' } ],
+						[ { type: 'em' } ],
+					],
+					text: 'one tw',
+				},
+				selection: {},
+			},
+			{
+				value: {
+					formats: [
+						[ { type: 'em' } ],
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+						undefined,
+					],
+					text: 'o three',
+				},
+				selection: {
+					start: 0,
+					end: 0,
+				},
+			},
+		];
+
+		expect( split( record ) ).toEqual( expected );
+	} );
+
+	it( 'should split empty', () => {
+		const record = {
+			formats: [],
+			text: '',
+		};
+
+		const expected = [
+			record,
+			record,
+		];
+
+		expect( split( record, 6, 6 ) ).toEqual( expected );
 	} );
 } );

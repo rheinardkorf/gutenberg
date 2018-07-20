@@ -608,36 +608,14 @@ export class RichText extends Component {
 	 * @param {Object} context The context for splitting.
 	 */
 	splitContent( blocks = [], context = {} ) {
-		const { onSplit } = this.props;
+		const { onSplit, value } = this.props;
+		const { selection } = this.state;
+
 		if ( ! onSplit ) {
 			return;
 		}
 
-		const rootNode = this.editor.getBody();
-
-		let before, after;
-		if ( rootNode.childNodes.length ) {
-			const { dom } = this.editor;
-			const beforeRange = dom.createRng();
-			const afterRange = dom.createRng();
-			const selectionRange = this.editor.selection.getRng();
-
-			beforeRange.setStart( rootNode, 0 );
-			beforeRange.setEnd( selectionRange.startContainer, selectionRange.startOffset );
-
-			afterRange.setStart( selectionRange.endContainer, selectionRange.endOffset );
-			afterRange.setEnd( rootNode, dom.nodeIndex( rootNode.lastChild ) + 1 );
-
-			const beforeFragment = beforeRange.extractContents();
-			const afterFragment = afterRange.extractContents();
-
-			const { format, multiline } = this.props;
-			before = domToFormat( beforeFragment, multiline, format );
-			after = domToFormat( afterFragment, multiline, format );
-		} else {
-			before = { formats: {}, value: '' };
-			after = { formats: {}, value: '' };
-		}
+		let [ before, after ] = richTextStructure.split( value, selection.start, selection.end );
 
 		// In case split occurs at the trailing or leading edge of the field,
 		// assume that the before/after values respectively reflect the current
@@ -645,9 +623,9 @@ export class RichText extends Component {
 		// determine whether the before/after value has changed using a trivial
 		//  strict equality operation.
 		if ( isEmpty( after ) ) {
-			before = this.props.value;
+			before = value;
 		} else if ( isEmpty( before ) ) {
-			after = this.props.value;
+			after = value;
 		}
 
 		// If pasting and the split would result in no content other than the
