@@ -564,29 +564,20 @@ add_action( 'wp_enqueue_scripts', 'gutenberg_register_scripts_and_styles', 5 );
 add_action( 'admin_enqueue_scripts', 'gutenberg_register_scripts_and_styles', 5 );
 
 /**
- * Append result of internal request to REST API for purpose of preloading
- * data to be attached to the page. Expected to be called in the context of
- * `array_reduce`.
+ * Return result of internal request to REST API for purpose of preloading
+ * data to be attached to the page.
  *
- * @param  array  $memo Reduce accumulator.
  * @param  string $path REST API path to preload.
- * @return array        Modified reduce accumulator.
+ * @return array        An associative array encapsulating data from the response.
  */
-function gutenberg_preload_api_request( $memo, $path ) {
-
-	// array_reduce() doesn't support passing an array in PHP 5.2
-	// so we need to make sure we start with one.
-	if ( ! is_array( $memo ) ) {
-		$memo = array();
-	}
-
+function gutenberg_api_request( $path ) {
 	if ( empty( $path ) ) {
-		return $memo;
+		return;
 	}
 
 	$path_parts = parse_url( $path );
 	if ( false === $path_parts ) {
-		return $memo;
+		return;
 	}
 
 	$request = new WP_REST_Request( 'GET', $path_parts['path'] );
@@ -608,10 +599,38 @@ function gutenberg_preload_api_request( $memo, $path ) {
 			$data['_links'] = $links;
 		}
 
-		$memo[ $path ] = array(
+		return array(
 			'body'    => $data,
 			'headers' => $response->headers,
 		);
+	}
+}
+
+/**
+ * Append result of internal request to REST API for purpose of preloading
+ * data to be attached to the page. Expected to be called in the context of
+ * `array_reduce`.
+ *
+ * @param  array  $memo Reduce accumulator.
+ * @param  string $path REST API path to preload.
+ * @return array        Modified reduce accumulator.
+ */
+function gutenberg_preload_api_request( $memo, $path ) {
+
+	// array_reduce() doesn't support passing an array in PHP 5.2
+	// so we need to make sure we start with one.
+	if ( ! is_array( $memo ) ) {
+		$memo = array();
+	}
+
+	if ( empty( $path ) ) {
+		return $memo;
+	}
+
+	$reponse = gutenberg_api_request( $path );
+
+	if ( isset( $response ) ) {
+		$memo[ $path ] = $reponse;
 	}
 
 	return $memo;
