@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 const { window } = new JSDOM();
 const { document } = window;
 
-import { create, createWithSelection, toString, concat, isEmpty, splice, applyFormat } from '../rich-text-structure';
+import { create, createWithSelection, toString, concat, isEmpty, splice, applyFormat, removeFormat } from '../rich-text-structure';
 
 function createNode( HTML ) {
 	document.body.innerHTML = HTML;
@@ -469,6 +469,104 @@ describe( 'applyFormat', () => {
 			text: 'one two three',
 		};
 
-		expect( applyFormat( record, 3, 5, { type: 'strong' } ) ).toEqual( expected );
+		expect( applyFormat( record, { type: 'strong' }, 3, 6 ) ).toEqual( expected );
+	} );
+
+	it( 'should apply format by selection', () => {
+		const record = {
+			value: {
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'one two three',
+			},
+			selection: {
+				start: 3,
+				end: 6,
+			},
+		};
+
+		const expected = {
+			value: {
+				formats: [
+					undefined,
+					undefined,
+					undefined,
+					[ { type: 'strong' } ],
+					[ { type: 'em' }, { type: 'strong' } ],
+					[ { type: 'em' }, { type: 'strong' } ],
+					[ { type: 'em' } ],
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+					undefined,
+				],
+				text: 'one two three',
+			},
+			selection: {
+				start: 3,
+				end: 6,
+			},
+		};
+
+		expect( applyFormat( record, { type: 'strong' } ) ).toEqual( expected );
+	} );
+} );
+
+describe( 'removeFormat', () => {
+	it( 'should remove format', () => {
+		const record = {
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'strong' } ],
+				[ { type: 'em' }, { type: 'strong' } ],
+				[ { type: 'em' }, { type: 'strong' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
+			text: 'one two three',
+		};
+
+		const expected = {
+			formats: [
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				[ { type: 'em' } ],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			],
+			text: 'one two three',
+		};
+
+		expect( removeFormat( record, 'strong', 3, 6 ) ).toEqual( expected );
 	} );
 } );

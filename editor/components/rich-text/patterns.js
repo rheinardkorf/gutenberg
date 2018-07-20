@@ -83,7 +83,7 @@ export default function() {
 
 			record = splice( record, match.index + match[ 0 ].length - 1, 1 );
 			record = splice( record, start, 1 );
-			record = applyFormat( record, start, end, { type: 'code' } );
+			record = applyFormat( record, { type: 'code' }, start, end );
 
 			return record;
 		},

@@ -5,7 +5,6 @@ import classnames from 'classnames';
 import {
 	isEqual,
 	forEach,
-	merge,
 	identity,
 	find,
 	defer,
@@ -57,17 +56,6 @@ const { Node } = window;
  */
 const TINYMCE_ZWSP = '\uFEFF';
 
-export function getFormatProperties( formatName, parents ) {
-	switch ( formatName ) {
-		case 'link' : {
-			const anchor = find( parents, ( node ) => node.nodeName.toLowerCase() === 'a' );
-			return !! anchor ? { value: anchor.getAttribute( 'href' ) || '', target: anchor.getAttribute( 'target' ) || '', node: anchor } : {};
-		}
-		default:
-			return {};
-	}
-}
-
 const DEFAULT_FORMATS = [ 'bold', 'italic', 'strikethrough', 'link', 'code' ];
 
 const { isEmpty } = richTextStructure;
@@ -85,7 +73,6 @@ export class RichText extends Component {
 		this.onHorizontalNavigationKeyDown = this.onHorizontalNavigationKeyDown.bind( this );
 		this.onKeyDown = this.onKeyDown.bind( this );
 		this.onKeyUp = this.onKeyUp.bind( this );
-		this.changeFormats = this.changeFormats.bind( this );
 		this.onPropagateUndo = this.onPropagateUndo.bind( this );
 		this.onPastePreProcess = this.onPastePreProcess.bind( this );
 		this.onPaste = this.onPaste.bind( this );
@@ -94,14 +81,12 @@ export class RichText extends Component {
 		this.onInput = this.onInput.bind( this );
 		this.onSelectionChange = this.onSelectionChange.bind( this );
 
-		this.state = {
-			formats: {},
-			selectedNodeId: 0,
-		};
-
 		this.containerRef = createRef();
 		this.patterns = patterns.call( this );
-		this.selection = [];
+
+		this.state = {
+			selection: [],
+		};
 	}
 
 	/**
@@ -160,7 +145,7 @@ export class RichText extends Component {
 	}
 
 	onInit() {
-		this.registerCustomFormatters();
+		// this.registerCustomFormatters();
 
 		this.editor.shortcuts.add( rawShortcut.primary( 'k' ), '', () => this.changeFormats( { link: { isAdding: true } } ) );
 		this.editor.shortcuts.add( rawShortcut.access( 'a' ), '', () => this.changeFormats( { link: { isAdding: true } } ) );
@@ -378,11 +363,16 @@ export class RichText extends Component {
 		this.props.onChange( this.savedContent );
 	}
 
-	onChange() {
-		const { multiline } = this.props;
-		const rootNode = this.editor.getBody();
-		const range = this.editor.selection.getRng();
-		const record = richTextStructure.createWithSelection( rootNode, range, multiline );
+	onChange( record ) {
+		if ( ! record ) {
+			const { multiline } = this.props;
+			const rootNode = this.editor.getBody();
+			const range = this.editor.selection.getRng();
+
+			record = richTextStructure.createWithSelection( rootNode, range, multiline );
+		} else {
+			richTextStructure.apply( record, this.editor.getBody() );
+		}
 
 		this.savedContent = record.value;
 		this.props.onChange( this.savedContent );
@@ -399,7 +389,7 @@ export class RichText extends Component {
 		const range = this.editor.selection.getRng();
 		const { selection } = richTextStructure.createWithSelection( rootNode, range, multiline );
 
-		this.selection = selection;
+		this.setState( { selection } );
 	}
 
 	onCreateUndoLevel( event ) {
@@ -675,18 +665,6 @@ export class RichText extends Component {
 			return;
 		}
 
-		const formatNames = this.props.formattingControls;
-		const formats = this.editor.formatter.matchAll( formatNames ).reduce( ( accFormats, activeFormat ) => {
-			accFormats[ activeFormat ] = {
-				isActive: true,
-				...getFormatProperties( activeFormat, parents ),
-			};
-
-			return accFormats;
-		}, {} );
-
-		this.setState( { formats, selectedNodeId: this.state.selectedNodeId + 1 } );
-
 		if ( this.props.isViewportSmall ) {
 			let rect;
 			const selectedAnchor = find( parents, ( node ) => node.tagName === 'A' );
@@ -753,65 +731,6 @@ export class RichText extends Component {
 		return isEmpty( this.props.value );
 	}
 
-	isFormatActive( format ) {
-		return this.state.formats[ format ] && this.state.formats[ format ].isActive;
-	}
-
-	removeFormat( format ) {
-		this.editor.focus();
-		this.editor.formatter.remove( format );
-		// Formatter does not trigger a change event like `execCommand` does.
-		this.onCreateUndoLevel();
-	}
-
-	applyFormat( format, args, node ) {
-		this.editor.focus();
-		this.editor.formatter.apply( format, args, node );
-		// Formatter does not trigger a change event like `execCommand` does.
-		this.onCreateUndoLevel();
-	}
-
-	changeFormats( formats ) {
-		forEach( formats, ( formatValue, format ) => {
-			if ( format === 'link' ) {
-				if ( !! formatValue ) {
-					if ( formatValue.isAdding ) {
-						return;
-					}
-
-					const { value: href, target } = formatValue;
-
-					if ( ! this.isFormatActive( 'link' ) && this.editor.selection.isCollapsed() ) {
-						// When no link or text is selected, insert a link with the URL as its text
-						const anchorHTML = this.editor.dom.createHTML(
-							'a',
-							{ href, target },
-							this.editor.dom.encode( href )
-						);
-						this.editor.insertContent( anchorHTML );
-					} else {
-						// Use built-in TinyMCE command turn the selection into a link. This takes
-						// care of deleting any existing links within the selection
-						this.editor.execCommand( 'mceInsertLink', false, { href, target } );
-					}
-				} else {
-					this.editor.execCommand( 'Unlink' );
-				}
-			} else {
-				const isActive = this.isFormatActive( format );
-				if ( isActive && ! formatValue ) {
-					this.removeFormat( format );
-				} else if ( ! isActive && formatValue ) {
-					this.applyFormat( format );
-				}
-			}
-		} );
-
-		this.setState( ( state ) => ( {
-			formats: merge( {}, state.formats, formats ),
-		} ) );
-	}
-
 	/**
 	 * Calling onSplit means we need to abort the change done by TinyMCE.
 	 * we need to call updateContent to restore the initial content before calling onSplit.
@@ -842,6 +761,8 @@ export class RichText extends Component {
 			format,
 		} = this.props;
 
+		const { selection } = this.state;
+
 		const ariaProps = pickAriaProps( this.props );
 
 		// Generating a key that includes `tagName` ensures that if the tag
@@ -853,9 +774,8 @@ export class RichText extends Component {
 
 		const formatToolbar = (
 			<FormatToolbar
-				selectedNodeId={ this.state.selectedNodeId }
-				formats={ this.state.formats }
-				onChange={ this.changeFormats }
+				record={ { value, selection } }
+				onChange={ this.onChange }
 				enabledControls={ formattingControls }
 				customControls={ formatters }
 			/>

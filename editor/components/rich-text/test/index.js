@@ -8,63 +8,8 @@ import { shallow } from 'enzyme';
  */
 import {
 	RichText,
-	getFormatProperties,
 } from '../';
 import { diffAriaProps, pickAriaProps } from '../aria';
-
-describe( 'getFormatProperties', () => {
-	const formatName = 'link';
-	const node = {
-		nodeName: 'A',
-		attributes: {
-			href: 'https://www.testing.com',
-			target: '_blank',
-		},
-	};
-
-	test( 'should return an empty object', () => {
-		expect( getFormatProperties( 'ofSomething' ) ).toEqual( {} );
-	} );
-
-	test( 'should return an empty object if no anchor element is found', () => {
-		expect( getFormatProperties( formatName, [ { ...node, nodeName: 'P' } ] ) ).toEqual( {} );
-	} );
-
-	test( 'should return a populated object', () => {
-		const mockNode = {
-			...node,
-			getAttribute: jest.fn().mockImplementation( ( attr ) => mockNode.attributes[ attr ] ),
-		};
-
-		const parents = [
-			mockNode,
-		];
-
-		expect( getFormatProperties( formatName, parents ) ).toEqual( {
-			value: 'https://www.testing.com',
-			target: '_blank',
-			node: mockNode,
-		} );
-	} );
-
-	test( 'should return an object with empty values when no link is found', () => {
-		const mockNode = {
-			...node,
-			attributes: {},
-			getAttribute: jest.fn().mockImplementation( ( attr ) => mockNode.attributes[ attr ] ),
-		};
-
-		const parents = [
-			mockNode,
-		];
-
-		expect( getFormatProperties( formatName, parents ) ).toEqual( {
-			value: '',
-			target: '',
-			node: mockNode,
-		} );
-	} );
-} );
 
 describe( 'RichText', () => {
 	describe( 'Component', () => {

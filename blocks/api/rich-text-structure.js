@@ -1,3 +1,5 @@
+import { find } from 'lodash';
+
 /**
  * Browser dependencies
  */
@@ -112,12 +114,18 @@ function createRecord( element, range, settings = {} ) {
 			}
 
 			if ( range ) {
-				if ( node === range.startContainer ) {
-					accumulator.selection.start = accumulator.value.text.length + range.startOffset;
+				if (
+					node.parentNode === range.startContainer &&
+					node === range.startContainer.childNodes[ range.startOffset ]
+				) {
+					accumulator.selection.start = accumulator.value.text.length;
 				}
 
-				if ( node === range.endContainer ) {
-					accumulator.selection.end = accumulator.value.text.length + range.endOffset;
+				if (
+					node.parentNode === range.endContainer &&
+					node === range.endContainer.childNodes[ range.endOffset ]
+				) {
+					accumulator.selection.end = accumulator.value.text.length;
 				}
 			}
 
@@ -208,6 +216,10 @@ export function apply( value, current, multiline ) {
 		}
 
 		i++;
+	}
+
+	while ( current.childNodes[ i ] ) {
+		current.removeChild( current.childNodes[ i ] );
 	}
 
 	const { node: startContainer, offset: startOffset } = getNodeByPath( current, selection.startPath );
@@ -416,25 +428,64 @@ export function getTextContent( { text, value } ) {
 	return text || value.text;
 }
 
-export function applyFormat( { formats, text, value, selection }, start, end, format ) {
+export function applyFormat( { formats, text, value, selection }, format, start, end ) {
 	if ( value !== undefined ) {
+		start = start || selection.start;
+		end = end || selection.end;
+
 		return {
 			selection,
-			value: applyFormat( value, start, end, format ),
+			value: applyFormat( value, format, start, end ),
 		};
 	}
 
-	let i = formats.length;
-
-	while ( i-- ) {
-		if ( i >= start && i <= end ) {
-			if ( formats[ i ] ) {
-				formats[ i ].push( format );
-			} else {
-				formats[ i ] = [ format ];
-			}
+	for ( let i = start; i < end; i++ ) {
+		if ( formats[ i ] ) {
+			const newFormats = formats[ i ].filter( ( { type } ) => type !== format.type );
+			newFormats.push( format );
+			formats[ i ] = newFormats;
+		} else {
+			formats[ i ] = [ format ];
 		}
 	}
 
 	return { formats, text };
+}
+
+export function removeFormat( { formats, text, value, selection }, formatType, start, end ) {
+	if ( value !== undefined ) {
+		start = start || selection.start;
+		end = end || selection.end;
+
+		return {
+			selection,
+			value: removeFormat( value, formatType, start, end ),
+		};
+	}
+
+	for ( let i = start; i < end; i++ ) {
+		if ( formats[ i ] ) {
+			const newFormats = formats[ i ].filter( ( { type } ) => type !== formatType );
+			formats[ i ] = newFormats.length ? newFormats : undefined;
+		}
+	}
+
+	return { formats, text };
+}
+
+export function getActiveFormat( { value, selection }, formatType ) {
+	if ( ! selection ) {
+		return false;
+	}
+
+	if ( Array.isArray( value ) ) {
+		return getActiveFormat( {
+			value: value[ selection.start[ 0 ] ],
+			selection: selection.start[ 1 ],
+		} );
+	}
+
+	const formats = value.formats[ selection.start ];
+
+	return find( formats, { type: formatType } );
 }
