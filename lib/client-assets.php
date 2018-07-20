@@ -1011,22 +1011,21 @@ function gutenberg_capture_code_editor_settings( $settings ) {
  * @return WP_Post|boolean The post autosave. False if none found.
  */
 function get_autosave_newer_than_post_save( $post ) {
-	// Add autosave data if it is newer and changed.
-	$autosave = wp_get_post_autosave( $post->ID );
+	$autosave_response = gutenberg_api_request( sprintf( '/wp/v2/posts/%s/autosaves', $post->ID ) );
 
-	if ( ! $autosave ) {
+	if ( ! isset( $autosave_response['body'][0] ) ) {
 		return false;
 	}
 
+	$autosave = $autosave_response['body'][0];
+
 	// Check if the autosave is newer than the current post.
-	if (
-		mysql2date( 'U', $autosave->post_modified_gmt, false ) > mysql2date( 'U', $post->post_modified_gmt, false )
-	) {
+	if ( mysql2date( 'U', $autosave['modified_gmt'], false ) > mysql2date( 'U', $post->post_modified_gmt, false ) ) {
 		return $autosave;
 	}
 
 	// If the autosave isn't newer, remove it.
-	wp_delete_post_revision( $autosave->ID );
+	wp_delete_post_revision( $autosave['id'] );
 
 	return false;
 }
@@ -1253,13 +1252,13 @@ function gutenberg_editor_scripts_and_styles( $hook ) {
 		'autosaveInterval'    => 10,
 	);
 
-	$post_autosave = get_autosave_newer_than_post_save( $post );
-	if ( $post_autosave ) {
-		$editor_settings['autosave'] = array(
-			'editLink' => add_query_arg( 'gutenberg', true, get_edit_post_link( $post_autosave->ID ) ),
-			'title'    => $post_autosave->post_title,
-			'content'  => $post_autosave->post_content,
-			'excerpt'  => $post_autosave->post_excerpt,
+	$autosave = get_autosave_newer_than_post_save( $post );
+	if ( $autosave ) {
+		$editor_settings['autosave'] = array_merge(
+			array(
+				'editLink' => add_query_arg( 'gutenberg', true, get_edit_post_link( $autosave['id'] ) ),
+			),
+			$autosave
 		);
 	}
 
