@@ -1011,7 +1011,7 @@ function gutenberg_capture_code_editor_settings( $settings ) {
  * @return WP_Post|boolean The post autosave. False if none found.
  */
 function get_autosave_newer_than_post_save( $post ) {
-	$autosave_response = gutenberg_api_request( sprintf( '/wp/v2/posts/%s/autosaves', $post->ID ) );
+	$autosave_response = gutenberg_api_request( sprintf( '/wp/v2/posts/%s/autosaves?context=edit', $post->ID ) );
 
 	if ( ! isset( $autosave_response['body'][0] ) ) {
 		return false;
