@@ -586,7 +586,6 @@ function gutenberg_api_request( $path ) {
 		$request->set_query_params( $query_params );
 	}
 
-
 	// Ensure the global $post remains the same after the API request is made.
 	// Because API requests can call the_content and other filters, callbacks
 	// can unexpectedly modify $post resulting in issues
@@ -596,7 +595,7 @@ function gutenberg_api_request( $path ) {
 
 	$response = rest_do_request( $request );
 
-	// restore the global post
+	// restore the global post.
 	$post = $backup_global_post;
 
 	if ( 200 === $response->status ) {
